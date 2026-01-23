@@ -190,6 +190,36 @@ final class GhostmuxClient {
         return response.body?["value"] as? String
     }
 
+    func getTerminal(terminalId: String) throws -> Terminal {
+        let response = try request(version: "v2", method: "GET", path: "/terminals/\(terminalId)")
+        guard response.status == 200 else {
+            throw GhostmuxError.apiError(response.status, response.bodyError)
+        }
+        guard let body = response.body, let terminal = parseTerminal(body) else {
+            throw GhostmuxError.message("terminal not found")
+        }
+        return terminal
+    }
+
+    func executeAction(terminalId: String, action: String) throws {
+        let body: [String: Any] = ["action": action]
+        let response = try request(version: "v2", method: "POST", path: "/terminals/\(terminalId)/action", body: body)
+        guard response.status == 200 else {
+            throw GhostmuxError.apiError(response.status, response.bodyError)
+        }
+        if let success = response.body?["success"] as? Bool, !success {
+            let errorMsg = response.body?["error"] as? String ?? "action failed"
+            throw GhostmuxError.message(errorMsg)
+        }
+    }
+
+    func focusTerminal(terminalId: String) throws {
+        let response = try request(version: "v2", method: "POST", path: "/terminals/\(terminalId)/focus")
+        guard response.status == 200 else {
+            throw GhostmuxError.apiError(response.status, response.bodyError)
+        }
+    }
+
     private func request(
         version: String,
         method: String,

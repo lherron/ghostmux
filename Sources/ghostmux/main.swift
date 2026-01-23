@@ -11,6 +11,11 @@ Commands:
   list-surfaces         List all terminals
   status                Check Ghostty API availability
   new                   Create a new terminal window or tab
+  new-pane              Create a new pane by splitting (requires -t or $GHOSTTY_SURFACE_UUID)
+  panes-grid            Create a grid of panes (e.g., 3x2 for 6 panes)
+  get-pane-size         Get pane dimensions (requires -t or $GHOSTTY_SURFACE_UUID)
+  resize-pane           Resize a pane (requires -t and -d)
+  equalize-panes        Make all panes equal size (requires -t or $GHOSTTY_SURFACE_UUID)
   kill-surface          Close a terminal (requires -t)
   set-bg                Set terminal background color (requires -t)
   send-keys             Send keys + Enter to a terminal (requires -t)
@@ -31,6 +36,12 @@ Examples:
   ghostmux status
   ghostmux new --tab --cwd /tmp
   ghostmux new --title 'build: project' --cwd /path
+  ghostmux new-pane -d down                     # Split down from focused pane
+  ghostmux new-pane -t 550e8400 -d right        # Split right from specific pane
+  ghostmux panes-grid 3x2                       # Create 3x2 grid (6 panes)
+  ghostmux get-pane-size -t 550e8400            # Get pane dimensions
+  ghostmux resize-pane -d right -a 100          # Expand right by 100px
+  ghostmux equalize-panes                       # Make all panes equal size
   ghostmux send-keys -t 1a2b3c4d "ls -la"
   ghostmux send-key -t 550e8400 C-c
   ghostmux set-title -t 1a2b3c4d "build: ghostty"
@@ -43,6 +54,11 @@ private let commandTypes: [GhostmuxCommand.Type] = [
     ListSessionsCommand.self,
     StatusCommand.self,
     NewCommand.self,
+    NewPaneCommand.self,
+    PanesGridCommand.self,
+    GetPaneSizeCommand.self,
+    ResizePaneCommand.self,
+    EqualizePanesCommand.self,
     KillSurfaceCommand.self,
     SetBackgroundCommand.self,
     SendKeysCommand.self,

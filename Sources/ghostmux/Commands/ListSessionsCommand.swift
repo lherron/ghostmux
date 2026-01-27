@@ -1,4 +1,5 @@
 import Foundation
+import GhosttyLib
 
 struct ListSessionsCommand: GhostmuxCommand {
     static let name = "list-surfaces"
@@ -24,7 +25,7 @@ struct ListSessionsCommand: GhostmuxCommand {
                 json = true
                 continue
             }
-            throw GhostmuxError.message("unexpected argument: \(arg)")
+            throw GhosttyError.message("unexpected argument: \(arg)")
         }
 
         let terminals = try context.client.listTerminals()

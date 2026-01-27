@@ -1,4 +1,5 @@
 import Foundation
+import GhosttyLib
 
 struct EqualizePanesCommand: GhostmuxCommand {
     static let name = "equalize-panes"
@@ -47,7 +48,7 @@ struct EqualizePanesCommand: GhostmuxCommand {
                 return
             }
 
-            throw GhostmuxError.message("unexpected argument: \(arg)")
+            throw GhosttyError.message("unexpected argument: \(arg)")
         }
 
         // Resolve target
@@ -57,12 +58,12 @@ struct EqualizePanesCommand: GhostmuxCommand {
         } else if let envTarget = ProcessInfo.processInfo.environment["GHOSTTY_SURFACE_UUID"] {
             resolvedTarget = envTarget
         } else {
-            throw GhostmuxError.message("equalize-panes requires -t <target> or $GHOSTTY_SURFACE_UUID")
+            throw GhosttyError.message("equalize-panes requires -t <target> or $GHOSTTY_SURFACE_UUID")
         }
 
         let terminals = try context.client.listTerminals()
         guard let targetTerminal = resolveTarget(resolvedTarget, terminals: terminals) else {
-            throw GhostmuxError.message("can't find terminal: \(resolvedTarget)")
+            throw GhosttyError.message("can't find terminal: \(resolvedTarget)")
         }
 
         // Execute equalize action

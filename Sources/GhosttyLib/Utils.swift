@@ -1,6 +1,6 @@
 import Foundation
 
-func resolveTarget(_ target: String, terminals: [Terminal]) -> Terminal? {
+public func resolveTarget(_ target: String, terminals: [Terminal]) -> Terminal? {
     let lowerTarget = target.lowercased()
 
     if let exactId = terminals.first(where: { $0.id == target }) {
@@ -22,7 +22,7 @@ func resolveTarget(_ target: String, terminals: [Terminal]) -> Terminal? {
     return nil
 }
 
-func defaultSocketPath() -> String {
+public func defaultSocketPath() -> String {
     if let env = ProcessInfo.processInfo.environment["GHOSTTY_API_SOCKET"], !env.isEmpty {
         return env
     }
@@ -31,9 +31,22 @@ func defaultSocketPath() -> String {
     return home.appendingPathComponent("Library/Application Support/Ghostty/api.sock").path
 }
 
-func writeStdout(_ text: String) {
+public func writeStdout(_ text: String) {
     guard let data = text.data(using: .utf8) else {
         return
     }
     FileHandle.standardOutput.write(data)
+}
+
+public func writeJSON(_ object: Any) {
+    do {
+        let data = try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
+        if let text = String(data: data, encoding: .utf8) {
+            print(text)
+            return
+        }
+    } catch {
+        // fall through to plain print
+    }
+    print("{}")
 }

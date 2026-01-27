@@ -1,4 +1,5 @@
 import Foundation
+import GhosttyLib
 
 struct StatusBarCommand: GhostmuxCommand {
     static let name = "statusbar"
@@ -82,7 +83,7 @@ struct StatusBarCommand: GhostmuxCommand {
         }
 
         guard let subcommand = positional.first else {
-            throw GhostmuxError.message("statusbar requires a subcommand: set, show, hide, or toggle")
+            throw GhosttyError.message("statusbar requires a subcommand: set, show, hide, or toggle")
         }
 
         let resolvedTarget: String
@@ -91,12 +92,12 @@ struct StatusBarCommand: GhostmuxCommand {
         } else if let envTarget = ProcessInfo.processInfo.environment["GHOSTTY_SURFACE_UUID"] {
             resolvedTarget = envTarget
         } else {
-            throw GhostmuxError.message("statusbar requires -t <target> or $GHOSTTY_SURFACE_UUID")
+            throw GhosttyError.message("statusbar requires -t <target> or $GHOSTTY_SURFACE_UUID")
         }
 
         let terminals = try context.client.listTerminals()
         guard let targetTerminal = resolveTarget(resolvedTarget, terminals: terminals) else {
-            throw GhostmuxError.message("can't find terminal: \(resolvedTarget)")
+            throw GhosttyError.message("can't find terminal: \(resolvedTarget)")
         }
 
         let scope = windowScope ? "window" : nil
@@ -107,7 +108,7 @@ struct StatusBarCommand: GhostmuxCommand {
 
             // Allow set with just colors (no text content)
             if rawValue.isEmpty && fgColor == nil && bgColor == nil {
-                throw GhostmuxError.message("statusbar set requires \"left|center|right\" or --fg/--bg colors")
+                throw GhosttyError.message("statusbar set requires \"left|center|right\" or --fg/--bg colors")
             }
 
             var left: String?
@@ -117,7 +118,7 @@ struct StatusBarCommand: GhostmuxCommand {
             if !rawValue.isEmpty {
                 let parts = rawValue.split(separator: "|", omittingEmptySubsequences: false)
                 guard parts.count == 3 else {
-                    throw GhostmuxError.message("statusbar set requires exactly three fields: left|center|right")
+                    throw GhosttyError.message("statusbar set requires exactly three fields: left|center|right")
                 }
                 left = String(parts[0])
                 center = String(parts[1])
@@ -136,21 +137,21 @@ struct StatusBarCommand: GhostmuxCommand {
             )
         case "show":
             if positional.count > 1 {
-                throw GhostmuxError.message("statusbar show does not take extra arguments")
+                throw GhosttyError.message("statusbar show does not take extra arguments")
             }
             try context.client.setStatusBar(terminalId: targetTerminal.id, visible: true, scope: scope)
         case "hide":
             if positional.count > 1 {
-                throw GhostmuxError.message("statusbar hide does not take extra arguments")
+                throw GhosttyError.message("statusbar hide does not take extra arguments")
             }
             try context.client.setStatusBar(terminalId: targetTerminal.id, visible: false, scope: scope)
         case "toggle":
             if positional.count > 1 {
-                throw GhostmuxError.message("statusbar toggle does not take extra arguments")
+                throw GhosttyError.message("statusbar toggle does not take extra arguments")
             }
             try context.client.setStatusBar(terminalId: targetTerminal.id, toggle: true, scope: scope)
         default:
-            throw GhostmuxError.message("unknown statusbar subcommand: \(subcommand)")
+            throw GhosttyError.message("unknown statusbar subcommand: \(subcommand)")
         }
 
         if json {

@@ -1,4 +1,5 @@
 import Foundation
+import GhosttyLib
 
 struct KillSurfaceCommand: GhostmuxCommand {
     static let name = "kill-surface"
@@ -54,7 +55,7 @@ struct KillSurfaceCommand: GhostmuxCommand {
                 return
             }
 
-            throw GhostmuxError.message("unexpected argument: \(arg)")
+            throw GhosttyError.message("unexpected argument: \(arg)")
         }
 
         let resolvedTarget: String
@@ -63,16 +64,16 @@ struct KillSurfaceCommand: GhostmuxCommand {
         } else if let envTarget = ProcessInfo.processInfo.environment["GHOSTTY_SURFACE_UUID"] {
             resolvedTarget = envTarget
         } else {
-            throw GhostmuxError.message("kill-surface requires -t <target> or $GHOSTTY_SURFACE_UUID")
+            throw GhosttyError.message("kill-surface requires -t <target> or $GHOSTTY_SURFACE_UUID")
         }
 
         if confirm && force {
-            throw GhostmuxError.message("kill-surface does not allow both --confirm and --force")
+            throw GhosttyError.message("kill-surface does not allow both --confirm and --force")
         }
 
         let terminals = try context.client.listTerminals()
         guard let targetTerminal = resolveTarget(resolvedTarget, terminals: terminals) else {
-            throw GhostmuxError.message("can't find terminal: \(resolvedTarget)")
+            throw GhosttyError.message("can't find terminal: \(resolvedTarget)")
         }
 
         try context.client.deleteTerminal(terminalId: targetTerminal.id, confirm: confirm && !force)

@@ -1,4 +1,5 @@
 import Foundation
+import GhosttyLib
 
 struct SendKeyCommand: GhostmuxCommand {
     static let name = "send-key"
@@ -61,7 +62,7 @@ struct SendKeyCommand: GhostmuxCommand {
         }
 
         if positional.isEmpty {
-            throw GhostmuxError.message("send-key requires a key to send")
+            throw GhosttyError.message("send-key requires a key to send")
         }
 
         let resolvedTarget: String
@@ -70,12 +71,12 @@ struct SendKeyCommand: GhostmuxCommand {
         } else if let envTarget = ProcessInfo.processInfo.environment["GHOSTTY_SURFACE_UUID"] {
             resolvedTarget = envTarget
         } else {
-            throw GhostmuxError.message("send-key requires -t <target> or $GHOSTTY_SURFACE_UUID")
+            throw GhosttyError.message("send-key requires -t <target> or $GHOSTTY_SURFACE_UUID")
         }
 
         let terminals = try context.client.listTerminals()
         guard let targetTerminal = resolveTarget(resolvedTarget, terminals: terminals) else {
-            throw GhostmuxError.message("can't find terminal: \(resolvedTarget)")
+            throw GhosttyError.message("can't find terminal: \(resolvedTarget)")
         }
 
         if literal {

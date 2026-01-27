@@ -1,4 +1,5 @@
 import Foundation
+import GhosttyLib
 
 struct SetBackgroundCommand: GhostmuxCommand {
     static let name = "set-bg"
@@ -65,35 +66,35 @@ struct SetBackgroundCommand: GhostmuxCommand {
         } else if let envTarget = ProcessInfo.processInfo.environment["GHOSTTY_SURFACE_UUID"] {
             resolvedTarget = envTarget
         } else {
-            throw GhostmuxError.message("set-bg requires -t <target> or $GHOSTTY_SURFACE_UUID")
+            throw GhosttyError.message("set-bg requires -t <target> or $GHOSTTY_SURFACE_UUID")
         }
 
         if reset {
             if color != nil || !positional.isEmpty {
-                throw GhostmuxError.message("set-bg --reset cannot be combined with a color")
+                throw GhosttyError.message("set-bg --reset cannot be combined with a color")
             }
         } else {
             if color == nil {
                 if positional.count == 1 {
                     color = positional[0]
                 } else if positional.isEmpty {
-                    throw GhostmuxError.message("set-bg requires a color or --reset")
+                    throw GhosttyError.message("set-bg requires a color or --reset")
                 } else {
-                    throw GhostmuxError.message("set-bg expects a single color value")
+                    throw GhosttyError.message("set-bg expects a single color value")
                 }
             }
         }
 
         let terminals = try context.client.listTerminals()
         guard let targetTerminal = resolveTarget(resolvedTarget, terminals: terminals) else {
-            throw GhostmuxError.message("can't find terminal: \(resolvedTarget)")
+            throw GhosttyError.message("can't find terminal: \(resolvedTarget)")
         }
 
         if reset {
             try context.client.sendOutput(terminalId: targetTerminal.id, data: oscResetBackground())
         } else {
             guard let color, let hex = normalizeHex(color) else {
-                throw GhostmuxError.message("set-bg expects a hex color like #RRGGBB")
+                throw GhosttyError.message("set-bg expects a hex color like #RRGGBB")
             }
             try context.client.sendOutput(terminalId: targetTerminal.id, data: oscSetBackground(hex: hex))
         }

@@ -1,0 +1,10 @@
+{
+  "name": "defaults",
+  "version": "1.0.0",
+  "description": "Base hooks: bash logging, session info display",
+  "keywords": [
+    "logging",
+    "hooks",
+    "base"
+  ]
+}

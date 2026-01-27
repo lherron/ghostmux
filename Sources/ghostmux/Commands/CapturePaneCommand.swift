@@ -1,4 +1,5 @@
 import Foundation
+import GhosttyLib
 
 struct CapturePaneCommand: GhostmuxCommand {
     static let name = "capture-pane"
@@ -69,12 +70,12 @@ struct CapturePaneCommand: GhostmuxCommand {
             }
 
             if arg == "-b", i + 1 < context.args.count {
-                throw GhostmuxError.message("capture-pane buffers are not supported in ghostmux")
+                throw GhosttyError.message("capture-pane buffers are not supported in ghostmux")
             }
 
             if arg == "-a" || arg == "-e" || arg == "-P" || arg == "-q" || arg == "-C" || arg == "-J" ||
                 arg == "-M" || arg == "-N" || arg == "-T" {
-                throw GhostmuxError.message("capture-pane flag not supported: \(arg)")
+                throw GhosttyError.message("capture-pane flag not supported: \(arg)")
             }
 
             if arg == "-h" || arg == "--help" {
@@ -82,7 +83,7 @@ struct CapturePaneCommand: GhostmuxCommand {
                 return
             }
 
-            throw GhostmuxError.message("unexpected argument: \(arg)")
+            throw GhosttyError.message("unexpected argument: \(arg)")
         }
 
         let resolvedTarget: String
@@ -91,17 +92,17 @@ struct CapturePaneCommand: GhostmuxCommand {
         } else if let envTarget = ProcessInfo.processInfo.environment["GHOSTTY_SURFACE_UUID"] {
             resolvedTarget = envTarget
         } else {
-            throw GhostmuxError.message("capture-pane requires -t <target> or $GHOSTTY_SURFACE_UUID")
+            throw GhosttyError.message("capture-pane requires -t <target> or $GHOSTTY_SURFACE_UUID")
         }
 
         let terminals = try context.client.listTerminals()
         guard let targetTerminal = resolveTarget(resolvedTarget, terminals: terminals) else {
-            throw GhostmuxError.message("can't find terminal: \(resolvedTarget)")
+            throw GhosttyError.message("can't find terminal: \(resolvedTarget)")
         }
 
         if selection {
             if startSpec != nil || endSpec != nil {
-                throw GhostmuxError.message("capture-pane --selection is not compatible with -S/-E")
+                throw GhosttyError.message("capture-pane --selection is not compatible with -S/-E")
             }
             let selectionText = try context.client.getSelectionContents(terminalId: targetTerminal.id)
             if json {
@@ -159,14 +160,14 @@ struct CapturePaneCommand: GhostmuxCommand {
             return .dash
         }
         guard let parsed = Int(value) else {
-            throw GhostmuxError.message("invalid line value: \(value)")
+            throw GhosttyError.message("invalid line value: \(value)")
         }
         return .value(parsed)
     }
 
     private static func resolveVisibleLineCount(
         terminal: Terminal,
-        client: GhostmuxClient
+        client: GhosttyClient
     ) throws -> Int {
         if let rows = terminal.rows, rows > 0 {
             return rows

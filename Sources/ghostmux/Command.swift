@@ -1,8 +1,9 @@
 import Foundation
+import GhosttyLib
 
 struct CommandContext {
     let args: [String]
-    let client: GhostmuxClient
+    let client: GhosttyClient
 }
 
 protocol GhostmuxCommand {
@@ -32,17 +33,4 @@ func terminalSummary(_ terminal: Terminal) -> String {
     }
 
     return parts.joined(separator: " ")
-}
-
-func writeJSON(_ object: Any) {
-    do {
-        let data = try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
-        if let text = String(data: data, encoding: .utf8) {
-            print(text)
-            return
-        }
-    } catch {
-        // fall through to plain print
-    }
-    print("{}")
 }

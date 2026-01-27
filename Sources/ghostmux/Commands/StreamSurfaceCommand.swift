@@ -1,4 +1,5 @@
 import Foundation
+import GhosttyLib
 
 struct StreamSurfaceCommand: GhostmuxCommand {
     static let name = "stream-surface"
@@ -41,7 +42,7 @@ struct StreamSurfaceCommand: GhostmuxCommand {
                 return
             }
 
-            throw GhostmuxError.message("unexpected argument: \(arg)")
+            throw GhosttyError.message("unexpected argument: \(arg)")
         }
 
         // Resolve target
@@ -51,19 +52,19 @@ struct StreamSurfaceCommand: GhostmuxCommand {
         } else if let envTarget = ProcessInfo.processInfo.environment["GHOSTTY_SURFACE_UUID"] {
             resolvedTarget = envTarget
         } else {
-            throw GhostmuxError.message("stream-surface requires -t <target> or $GHOSTTY_SURFACE_UUID")
+            throw GhosttyError.message("stream-surface requires -t <target> or $GHOSTTY_SURFACE_UUID")
         }
 
         let terminals = try context.client.listTerminals()
         guard let terminal = resolveTarget(resolvedTarget, terminals: terminals) else {
-            throw GhostmuxError.message("can't find terminal: \(resolvedTarget)")
+            throw GhosttyError.message("can't find terminal: \(resolvedTarget)")
         }
 
         // Stream output
         try streamOutput(terminalId: terminal.id, raw: raw, client: context.client)
     }
 
-    private static func streamOutput(terminalId: String, raw: Bool, client: GhostmuxClient) throws {
+    private static func streamOutput(terminalId: String, raw: Bool, client: GhosttyClient) throws {
         // Connect to UDS
         let fd = try connectSocket(client.socketPath)
 
@@ -86,14 +87,14 @@ struct StreamSurfaceCommand: GhostmuxCommand {
         // Read initial response
         guard let initialResponse = try? readFrame(fd) else {
             close(fd)
-            throw GhostmuxError.message("failed to read initial response")
+            throw GhosttyError.message("failed to read initial response")
         }
 
         // Check for error
         if let status = initialResponse["status"] as? Int, status != 200 {
             close(fd)
             let message = (initialResponse["body"] as? [String: Any])?["message"] as? String ?? "stream failed"
-            throw GhostmuxError.message(message)
+            throw GhosttyError.message(message)
         }
 
         // Read frames continuously
@@ -128,7 +129,7 @@ struct StreamSurfaceCommand: GhostmuxCommand {
     private static func connectSocket(_ socketPath: String) throws -> Int32 {
         let fd = socket(AF_UNIX, SOCK_STREAM, 0)
         if fd < 0 {
-            throw GhostmuxError.message("failed to create socket")
+            throw GhosttyError.message("failed to create socket")
         }
 
         var noSigPipe: Int32 = 1
@@ -140,7 +141,7 @@ struct StreamSurfaceCommand: GhostmuxCommand {
         let maxLength = MemoryLayout.size(ofValue: addr.sun_path)
         guard socketPath.utf8.count < maxLength else {
             close(fd)
-            throw GhostmuxError.message("socket path too long")
+            throw GhosttyError.message("socket path too long")
         }
 
         let nsPath = socketPath as NSString
@@ -154,7 +155,7 @@ struct StreamSurfaceCommand: GhostmuxCommand {
 
         if result != 0 {
             close(fd)
-            throw GhostmuxError.message("failed to connect to socket")
+            throw GhosttyError.message("failed to connect to socket")
         }
 
         return fd
@@ -162,7 +163,7 @@ struct StreamSurfaceCommand: GhostmuxCommand {
 
     private static func sendFrame(_ fd: Int32, _ object: [String: Any]) throws {
         guard let json = try? JSONSerialization.data(withJSONObject: object, options: []) else {
-            throw GhostmuxError.message("failed to serialize request")
+            throw GhosttyError.message("failed to serialize request")
         }
 
         var length = UInt32(json.count).bigEndian
@@ -177,7 +178,7 @@ struct StreamSurfaceCommand: GhostmuxCommand {
                 return write(fd, base, frame.count - total)
             }
             if written <= 0 {
-                throw GhostmuxError.message("failed to write to socket")
+                throw GhosttyError.message("failed to write to socket")
             }
             total += written
         }
@@ -194,10 +195,10 @@ struct StreamSurfaceCommand: GhostmuxCommand {
             }
             if result < 0 {
                 if errno == EINTR { continue }
-                throw GhostmuxError.message("read error: \(errno)")
+                throw GhosttyError.message("read error: \(errno)")
             }
             if result == 0 {
-                throw GhostmuxError.message("connection closed")
+                throw GhosttyError.message("connection closed")
             }
             offset += result
         }
@@ -206,7 +207,7 @@ struct StreamSurfaceCommand: GhostmuxCommand {
         let length = Int(UInt32(bigEndian: lengthValue))
 
         if length <= 0 || length > 10_000_000 {
-            throw GhostmuxError.message("invalid frame length: \(length)")
+            throw GhosttyError.message("invalid frame length: \(length)")
         }
 
         // Read payload
@@ -219,10 +220,10 @@ struct StreamSurfaceCommand: GhostmuxCommand {
             }
             if result < 0 {
                 if errno == EINTR { continue }
-                throw GhostmuxError.message("read error: \(errno)")
+                throw GhosttyError.message("read error: \(errno)")
             }
             if result == 0 {
-                throw GhostmuxError.message("connection closed mid-frame")
+                throw GhosttyError.message("connection closed mid-frame")
             }
             offset += result
         }
@@ -230,7 +231,7 @@ struct StreamSurfaceCommand: GhostmuxCommand {
         let data = Data(payload)
         guard let object = try? JSONSerialization.jsonObject(with: data, options: []),
               let dict = object as? [String: Any] else {
-            throw GhostmuxError.message("invalid JSON response")
+            throw GhosttyError.message("invalid JSON response")
         }
 
         return dict

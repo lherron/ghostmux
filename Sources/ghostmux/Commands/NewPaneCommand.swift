@@ -1,4 +1,5 @@
 import Foundation
+import GhosttyLib
 
 struct NewPaneCommand: GhostmuxCommand {
     static let name = "new-pane"
@@ -69,12 +70,12 @@ struct NewPaneCommand: GhostmuxCommand {
             if arg == "--env", i + 1 < context.args.count {
                 let pair = context.args[i + 1]
                 guard let eqIndex = pair.firstIndex(of: "=") else {
-                    throw GhostmuxError.message("env must be in KEY=VALUE form")
+                    throw GhosttyError.message("env must be in KEY=VALUE form")
                 }
                 let key = String(pair[..<eqIndex])
                 let value = String(pair[pair.index(after: eqIndex)...])
                 if key.isEmpty {
-                    throw GhostmuxError.message("env key must be non-empty")
+                    throw GhosttyError.message("env key must be non-empty")
                 }
                 env[key] = value
                 i += 2
@@ -92,13 +93,13 @@ struct NewPaneCommand: GhostmuxCommand {
                 return
             }
 
-            throw GhostmuxError.message("unexpected argument: \(arg)")
+            throw GhosttyError.message("unexpected argument: \(arg)")
         }
 
         // Validate direction
         let validDirections = ["left", "right", "up", "down"]
         guard validDirections.contains(direction) else {
-            throw GhostmuxError.message("invalid direction '\(direction)': must be left, right, up, or down")
+            throw GhosttyError.message("invalid direction '\(direction)': must be left, right, up, or down")
         }
 
         // Resolve target
@@ -117,7 +118,7 @@ struct NewPaneCommand: GhostmuxCommand {
         if !resolvedTarget.isEmpty {
             let terminals = try context.client.listTerminals()
             guard let targetTerminal = resolveTarget(resolvedTarget, terminals: terminals) else {
-                throw GhostmuxError.message("can't find terminal: \(resolvedTarget)")
+                throw GhosttyError.message("can't find terminal: \(resolvedTarget)")
             }
             parentId = targetTerminal.id
         }

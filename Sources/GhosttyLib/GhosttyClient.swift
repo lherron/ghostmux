@@ -2,7 +2,7 @@ import Foundation
 import AppKit
 import Darwin
 
-final class GhostmuxClient {
+public final class GhosttyClient {
     private static let scriptableGhosttyBundleId = "com.lherron.scriptableghostty"
     private static let connectRetryAttempts = 20
     private static let connectRetryDelayMicros: useconds_t = 100_000
@@ -13,16 +13,16 @@ final class GhostmuxClient {
     private var didEnsureScriptableGhostty = false
 
     /// The path to the UDS socket
-    var socketPath: String { _socketPath }
+    public var socketPath: String { _socketPath }
 
-    init(socketPath: String) {
+    public init(socketPath: String) {
         self._socketPath = socketPath
     }
 
-    func listTerminals() throws -> [Terminal] {
+    public func listTerminals() throws -> [Terminal] {
         let response = try request(version: "v2", method: "GET", path: "/terminals")
         guard response.status == 200 else {
-            throw GhostmuxError.apiError(response.status, response.bodyError)
+            throw GhosttyError.apiError(response.status, response.bodyError)
         }
         guard let body = response.body,
               let terminals = body["terminals"] as? [[String: Any]] else {
@@ -31,7 +31,7 @@ final class GhostmuxClient {
         return terminals.compactMap(parseTerminal)
     }
 
-    func createTerminal(request: CreateTerminalRequest) throws -> Terminal {
+    public func createTerminal(request: CreateTerminalRequest) throws -> Terminal {
         let response = try self.request(
             version: "v2",
             method: "POST",
@@ -39,15 +39,15 @@ final class GhostmuxClient {
             body: request.toBody()
         )
         guard response.status == 200 else {
-            throw GhostmuxError.apiError(response.status, response.bodyError)
+            throw GhosttyError.apiError(response.status, response.bodyError)
         }
         guard let body = response.body, let terminal = parseTerminal(body) else {
-            throw GhostmuxError.message("invalid create terminal response")
+            throw GhosttyError.message("invalid create terminal response")
         }
         return terminal
     }
 
-    func deleteTerminal(terminalId: String, confirm: Bool) throws {
+    public func deleteTerminal(terminalId: String, confirm: Bool) throws {
         let query = confirm ? ["confirm": "true"] : [:]
         let response = try request(
             version: "v2",
@@ -56,14 +56,14 @@ final class GhostmuxClient {
             query: query
         )
         guard response.status == 200 else {
-            throw GhostmuxError.apiError(response.status, response.bodyError)
+            throw GhosttyError.apiError(response.status, response.bodyError)
         }
         if let success = response.body?["success"] as? Bool, !success {
-            throw GhostmuxError.message("kill-surface failed")
+            throw GhosttyError.message("kill-surface failed")
         }
     }
 
-    func isAvailable() -> Bool {
+    public func isAvailable() -> Bool {
         do {
             let response = try request(version: "v2", method: "GET", path: "/terminals")
             return response.status == 200
@@ -72,7 +72,7 @@ final class GhostmuxClient {
         }
     }
 
-    func sendKey(terminalId: String, stroke: KeyStroke) throws {
+    public func sendKey(terminalId: String, stroke: KeyStroke) throws {
         var body: [String: Any] = [
             "key": stroke.key,
             "unshifted_codepoint": stroke.unshiftedCodepoint,
@@ -85,50 +85,50 @@ final class GhostmuxClient {
         }
         let response = try request(version: "v2", method: "POST", path: "/terminals/\(terminalId)/key", body: body)
         guard response.status == 200 else {
-            throw GhostmuxError.apiError(response.status, response.bodyError)
+            throw GhosttyError.apiError(response.status, response.bodyError)
         }
         if let success = response.body?["success"] as? Bool, !success {
-            throw GhostmuxError.message("send-keys failed")
+            throw GhosttyError.message("send-keys failed")
         }
     }
 
-    func sendText(terminalId: String, text: String, enter: Bool = false) throws {
+    public func sendText(terminalId: String, text: String, enter: Bool = false) throws {
         var body: [String: Any] = ["text": text]
         if enter {
             body["enter"] = true
         }
         let response = try request(version: "v2", method: "POST", path: "/terminals/\(terminalId)/input", body: body)
         guard response.status == 200 else {
-            throw GhostmuxError.apiError(response.status, response.bodyError)
+            throw GhosttyError.apiError(response.status, response.bodyError)
         }
         if let success = response.body?["success"] as? Bool, !success {
-            throw GhostmuxError.message("input failed")
+            throw GhosttyError.message("input failed")
         }
     }
 
-    func sendOutput(terminalId: String, data: String) throws {
+    public func sendOutput(terminalId: String, data: String) throws {
         let body: [String: Any] = ["data": data]
         let response = try request(version: "v2", method: "POST", path: "/terminals/\(terminalId)/output", body: body)
         guard response.status == 200 else {
-            throw GhostmuxError.apiError(response.status, response.bodyError)
+            throw GhosttyError.apiError(response.status, response.bodyError)
         }
         if let success = response.body?["success"] as? Bool, !success {
-            throw GhostmuxError.message("output failed")
+            throw GhosttyError.message("output failed")
         }
     }
 
-    func setTitle(terminalId: String, title: String) throws {
+    public func setTitle(terminalId: String, title: String) throws {
         let body: [String: Any] = ["title": title]
         let response = try request(version: "v2", method: "POST", path: "/terminals/\(terminalId)/title", body: body)
         guard response.status == 200 else {
-            throw GhostmuxError.apiError(response.status, response.bodyError)
+            throw GhosttyError.apiError(response.status, response.bodyError)
         }
         if let success = response.body?["success"] as? Bool, !success {
-            throw GhostmuxError.message("set-title failed")
+            throw GhosttyError.message("set-title failed")
         }
     }
 
-    func setStatusBar(
+    public func setStatusBar(
         terminalId: String,
         left: String? = nil,
         center: String? = nil,
@@ -149,7 +149,7 @@ final class GhostmuxClient {
         if let fg { body["fg"] = fg }
         if let bg { body["bg"] = bg }
         if body.isEmpty {
-            throw GhostmuxError.message("statusbar update requires at least one field")
+            throw GhosttyError.message("statusbar update requires at least one field")
         }
 
         let response = try request(
@@ -159,64 +159,64 @@ final class GhostmuxClient {
             body: body
         )
         guard response.status == 200 else {
-            throw GhostmuxError.apiError(response.status, response.bodyError)
+            throw GhosttyError.apiError(response.status, response.bodyError)
         }
         if let success = response.body?["success"] as? Bool, !success {
-            throw GhostmuxError.message("statusbar update failed")
+            throw GhosttyError.message("statusbar update failed")
         }
     }
 
-    func getScreenContents(terminalId: String) throws -> String {
+    public func getScreenContents(terminalId: String) throws -> String {
         let response = try request(version: "v2", method: "GET", path: "/terminals/\(terminalId)/screen")
         guard response.status == 200 else {
-            throw GhostmuxError.apiError(response.status, response.bodyError)
+            throw GhosttyError.apiError(response.status, response.bodyError)
         }
         return response.body?["contents"] as? String ?? ""
     }
 
-    func getVisibleContents(terminalId: String) throws -> String {
+    public func getVisibleContents(terminalId: String) throws -> String {
         let response = try request(version: "v2", method: "GET", path: "/terminals/\(terminalId)/details/visible")
         guard response.status == 200 else {
-            throw GhostmuxError.apiError(response.status, response.bodyError)
+            throw GhosttyError.apiError(response.status, response.bodyError)
         }
         return response.body?["value"] as? String ?? ""
     }
 
-    func getSelectionContents(terminalId: String) throws -> String? {
+    public func getSelectionContents(terminalId: String) throws -> String? {
         let response = try request(version: "v2", method: "GET", path: "/terminals/\(terminalId)/details/selection")
         guard response.status == 200 else {
-            throw GhostmuxError.apiError(response.status, response.bodyError)
+            throw GhosttyError.apiError(response.status, response.bodyError)
         }
         return response.body?["value"] as? String
     }
 
-    func getTerminal(terminalId: String) throws -> Terminal {
+    public func getTerminal(terminalId: String) throws -> Terminal {
         let response = try request(version: "v2", method: "GET", path: "/terminals/\(terminalId)")
         guard response.status == 200 else {
-            throw GhostmuxError.apiError(response.status, response.bodyError)
+            throw GhosttyError.apiError(response.status, response.bodyError)
         }
         guard let body = response.body, let terminal = parseTerminal(body) else {
-            throw GhostmuxError.message("terminal not found")
+            throw GhosttyError.message("terminal not found")
         }
         return terminal
     }
 
-    func executeAction(terminalId: String, action: String) throws {
+    public func executeAction(terminalId: String, action: String) throws {
         let body: [String: Any] = ["action": action]
         let response = try request(version: "v2", method: "POST", path: "/terminals/\(terminalId)/action", body: body)
         guard response.status == 200 else {
-            throw GhostmuxError.apiError(response.status, response.bodyError)
+            throw GhosttyError.apiError(response.status, response.bodyError)
         }
         if let success = response.body?["success"] as? Bool, !success {
             let errorMsg = response.body?["error"] as? String ?? "action failed"
-            throw GhostmuxError.message(errorMsg)
+            throw GhosttyError.message(errorMsg)
         }
     }
 
-    func focusTerminal(terminalId: String) throws {
+    public func focusTerminal(terminalId: String) throws {
         let response = try request(version: "v2", method: "POST", path: "/terminals/\(terminalId)/focus")
         guard response.status == 200 else {
-            throw GhostmuxError.apiError(response.status, response.bodyError)
+            throw GhosttyError.apiError(response.status, response.bodyError)
         }
     }
 
@@ -245,11 +245,11 @@ final class GhostmuxClient {
     }
 
     private func sendUDS(payload: Data) throws -> Data {
-        var lastError: GhostmuxError?
+        var lastError: GhosttyError?
         for attempt in 0..<Self.sendRetryAttempts {
             do {
                 return try sendUDSOnce(payload: payload)
-            } catch let error as GhostmuxError {
+            } catch let error as GhosttyError {
                 lastError = error
                 if shouldRetry(error), attempt < Self.sendRetryAttempts - 1 {
                     usleep(Self.sendRetryDelayMicros)
@@ -259,7 +259,7 @@ final class GhostmuxClient {
             }
         }
 
-        throw lastError ?? GhostmuxError.message("failed to send request")
+        throw lastError ?? GhosttyError.message("failed to send request")
     }
 
     private func sendUDSOnce(payload: Data) throws -> Data {
@@ -278,7 +278,7 @@ final class GhostmuxClient {
         let responseLengthValue = header.withUnsafeBytes { $0.load(as: UInt32.self) }
         let responseLength = Int(UInt32(bigEndian: responseLengthValue))
         guard responseLength > 0 else {
-            throw GhostmuxError.message("invalid response length")
+            throw GhosttyError.message("invalid response length")
         }
 
         let response = try readExact(fd, count: responseLength, context: "response body")
@@ -293,7 +293,7 @@ final class GhostmuxClient {
 
         let maxLength = MemoryLayout.size(ofValue: addr.sun_path)
         guard _socketPath.utf8.count < maxLength else {
-            throw GhostmuxError.message("socket path too long")
+            throw GhosttyError.message("socket path too long")
         }
 
         let nsPath = _socketPath as NSString
@@ -303,7 +303,7 @@ final class GhostmuxClient {
         for attempt in 0..<Self.connectRetryAttempts {
             let fd = socket(AF_UNIX, SOCK_STREAM, 0)
             if fd < 0 {
-                throw GhostmuxError.message("failed to create socket")
+                throw GhosttyError.message("failed to create socket")
             }
 
             var noSigPipe: Int32 = 1
@@ -330,7 +330,7 @@ final class GhostmuxClient {
             break
         }
 
-        throw GhostmuxError.message("cannot connect to Ghostty UDS at \(_socketPath)")
+        throw GhosttyError.message("cannot connect to Ghostty UDS at \(_socketPath)")
     }
 
     private func readExact(_ fd: Int32, count: Int, context: String) throws -> Data {
@@ -343,13 +343,13 @@ final class GhostmuxClient {
                 return read(fd, base, count - offset)
             }
             if result == 0 {
-                throw GhostmuxError.transportRead("short \(context)", 0)
+                throw GhosttyError.transportRead("short \(context)", 0)
             }
             if result < 0 {
                 if errno == EINTR {
                     continue
                 }
-                throw GhostmuxError.transportRead("short \(context)", errno)
+                throw GhosttyError.transportRead("short \(context)", errno)
             }
             offset += result
         }
@@ -368,10 +368,10 @@ final class GhostmuxClient {
                 if errno == EINTR {
                     continue
                 }
-                throw GhostmuxError.transportWrite(errno)
+                throw GhosttyError.transportWrite(errno)
             }
             if written == 0 {
-                throw GhostmuxError.transportWrite(0)
+                throw GhosttyError.transportWrite(0)
             }
             total += written
         }
@@ -419,15 +419,15 @@ final class GhostmuxClient {
         do {
             try task.run()
         } catch {
-            throw GhostmuxError.message("failed to launch ScriptableGhostty")
+            throw GhosttyError.message("failed to launch ScriptableGhostty")
         }
         task.waitUntilExit()
         if task.terminationStatus != 0 {
-            throw GhostmuxError.message("failed to launch ScriptableGhostty")
+            throw GhosttyError.message("failed to launch ScriptableGhostty")
         }
     }
 
-    private func shouldRetry(_ error: GhostmuxError) -> Bool {
+    private func shouldRetry(_ error: GhosttyError) -> Bool {
         switch error {
         case .transportWrite(let code):
             return code == EPIPE || code == ECONNRESET || code == ENOTCONN || code == 0
@@ -439,11 +439,11 @@ final class GhostmuxClient {
     }
 }
 
-struct UDSResponse {
-    let status: Int
-    let body: [String: Any]?
+public struct UDSResponse {
+    public let status: Int
+    public let body: [String: Any]?
 
-    var bodyError: String? {
+    public var bodyError: String? {
         if let body, let message = body["message"] as? String {
             return message
         }
@@ -453,10 +453,10 @@ struct UDSResponse {
         return nil
     }
 
-    static func decode(_ data: Data) throws -> UDSResponse {
+    public static func decode(_ data: Data) throws -> UDSResponse {
         let object = try JSONSerialization.jsonObject(with: data, options: [])
         guard let dict = object as? [String: Any] else {
-            throw GhostmuxError.message("invalid response")
+            throw GhosttyError.message("invalid response")
         }
         let status = dict["status"] as? Int ?? 500
         let body = dict["body"] as? [String: Any]
@@ -464,13 +464,13 @@ struct UDSResponse {
     }
 }
 
-enum GhostmuxError: Error, CustomStringConvertible {
+public enum GhosttyError: Error, CustomStringConvertible {
     case message(String)
     case apiError(Int, String?)
     case transportWrite(Int32)
     case transportRead(String, Int32)
 
-    var description: String {
+    public var description: String {
         switch self {
         case .message(let message):
             return message

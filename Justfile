@@ -22,8 +22,9 @@ test:
 install: build-release
     @mkdir -p ~/.local/bin
     cp .build/release/ghostmux ~/.local/bin/ghostmux
-    chmod +x ~/.local/bin/ghostmux
-    @echo "Installed ghostmux to ~/.local/bin/ghostmux"
+    cp .build/release/ghostchat ~/.local/bin/ghostchat
+    chmod +x ~/.local/bin/ghostmux ~/.local/bin/ghostchat
+    @echo "Installed ghostmux and ghostchat to ~/.local/bin/"
 
 # Build and install ScriptableGhostty (convenience)
 install-ghostty:

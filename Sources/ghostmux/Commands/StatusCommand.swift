@@ -1,4 +1,5 @@
 import Foundation
+import GhosttyLib
 
 struct StatusCommand: GhostmuxCommand {
     static let name = "status"
@@ -23,7 +24,7 @@ struct StatusCommand: GhostmuxCommand {
                 json = true
                 continue
             }
-            throw GhostmuxError.message("unexpected argument: \(arg)")
+            throw GhosttyError.message("unexpected argument: \(arg)")
         }
 
         let available = context.client.isAvailable()

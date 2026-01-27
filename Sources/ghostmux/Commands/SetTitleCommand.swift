@@ -1,4 +1,5 @@
 import Foundation
+import GhosttyLib
 
 struct SetTitleCommand: GhostmuxCommand {
     static let name = "set-title"
@@ -49,21 +50,21 @@ struct SetTitleCommand: GhostmuxCommand {
         } else if let envTarget = ProcessInfo.processInfo.environment["GHOSTTY_SURFACE_UUID"] {
             resolvedTarget = envTarget
         } else {
-            throw GhostmuxError.message("set-title requires -t <target> or $GHOSTTY_SURFACE_UUID")
+            throw GhosttyError.message("set-title requires -t <target> or $GHOSTTY_SURFACE_UUID")
         }
 
         let title = positional.joined(separator: " ")
         if title.isEmpty {
-            throw GhostmuxError.message("set-title requires a title")
+            throw GhosttyError.message("set-title requires a title")
         }
 
         if title.contains("\u{1b}") || title.contains("\u{07}") {
-            throw GhostmuxError.message("set-title does not allow escape or bell characters")
+            throw GhosttyError.message("set-title does not allow escape or bell characters")
         }
 
         let terminals = try context.client.listTerminals()
         guard let targetTerminal = resolveTarget(resolvedTarget, terminals: terminals) else {
-            throw GhostmuxError.message("can't find terminal: \(resolvedTarget)")
+            throw GhosttyError.message("can't find terminal: \(resolvedTarget)")
         }
 
         do {
@@ -72,7 +73,7 @@ struct SetTitleCommand: GhostmuxCommand {
                 writeJSON(["success": true])
             }
             return
-        } catch let error as GhostmuxError {
+        } catch let error as GhosttyError {
             switch error {
             case .apiError(let status, let message):
                 if status == 404 || (message?.contains("Endpoint not found") ?? false) {

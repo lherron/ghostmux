@@ -1,4 +1,5 @@
 import Foundation
+import GhosttyLib
 
 struct PanesGridCommand: GhostmuxCommand {
     static let name = "panes-grid"
@@ -59,7 +60,7 @@ struct PanesGridCommand: GhostmuxCommand {
             }
 
             if arg.hasPrefix("-") {
-                throw GhostmuxError.message("unexpected argument: \(arg)")
+                throw GhosttyError.message("unexpected argument: \(arg)")
             }
 
             // Positional argument - should be grid spec
@@ -69,23 +70,23 @@ struct PanesGridCommand: GhostmuxCommand {
                 continue
             }
 
-            throw GhostmuxError.message("unexpected argument: \(arg)")
+            throw GhosttyError.message("unexpected argument: \(arg)")
         }
 
         // Parse grid spec
         guard let gridSpec else {
-            throw GhostmuxError.message("panes-grid requires grid size (e.g., 3x2)")
+            throw GhosttyError.message("panes-grid requires grid size (e.g., 3x2)")
         }
 
         let parts = gridSpec.lowercased().split(separator: "x")
         guard parts.count == 2,
               let columns = Int(parts[0]), columns >= 1,
               let rows = Int(parts[1]), rows >= 1 else {
-            throw GhostmuxError.message("invalid grid format '\(gridSpec)': use <columns>x<rows> (e.g., 3x2)")
+            throw GhosttyError.message("invalid grid format '\(gridSpec)': use <columns>x<rows> (e.g., 3x2)")
         }
 
         if columns > 10 || rows > 10 {
-            throw GhostmuxError.message("grid too large: maximum 10x10")
+            throw GhosttyError.message("grid too large: maximum 10x10")
         }
 
         // Resolve starting terminal
@@ -93,7 +94,7 @@ struct PanesGridCommand: GhostmuxCommand {
         if let target {
             let terminals = try context.client.listTerminals()
             guard let targetTerminal = resolveTarget(target, terminals: terminals) else {
-                throw GhostmuxError.message("can't find terminal: \(target)")
+                throw GhosttyError.message("can't find terminal: \(target)")
             }
             startingId = targetTerminal.id
         } else if let envTarget = ProcessInfo.processInfo.environment["GHOSTTY_SURFACE_UUID"] {
@@ -102,7 +103,7 @@ struct PanesGridCommand: GhostmuxCommand {
             // Use focused terminal
             let terminals = try context.client.listTerminals()
             guard let focused = terminals.first(where: { $0.focused }) else {
-                throw GhostmuxError.message("no focused terminal found")
+                throw GhosttyError.message("no focused terminal found")
             }
             startingId = focused.id
         }

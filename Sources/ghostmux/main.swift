@@ -1,5 +1,6 @@
 #!/usr/bin/env swift
 import Foundation
+import GhosttyLib
 
 private let usage = """
 ghostmux - Ghostty CLI (UDS only)
@@ -103,12 +104,12 @@ func main() {
         exit(1)
     }
 
-    let client = GhostmuxClient(socketPath: defaultSocketPath())
+    let client = GhosttyClient(socketPath: defaultSocketPath())
     let context = CommandContext(args: commandArgs, client: client)
 
     do {
         try command.run(context: context)
-    } catch let error as GhostmuxError {
+    } catch let error as GhosttyError {
         fputs("error: \(error.description)\n", stderr)
         exit(1)
     } catch {

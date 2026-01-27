@@ -1,4 +1,5 @@
 import Foundation
+import GhosttyLib
 
 struct ResizePaneCommand: GhostmuxCommand {
     static let name = "resize-pane"
@@ -51,7 +52,7 @@ struct ResizePaneCommand: GhostmuxCommand {
 
             if (arg == "-a" || arg == "--amount"), i + 1 < context.args.count {
                 guard let parsed = Int(context.args[i + 1]), parsed > 0 else {
-                    throw GhostmuxError.message("amount must be a positive integer")
+                    throw GhosttyError.message("amount must be a positive integer")
                 }
                 amount = parsed
                 i += 2
@@ -69,17 +70,17 @@ struct ResizePaneCommand: GhostmuxCommand {
                 return
             }
 
-            throw GhostmuxError.message("unexpected argument: \(arg)")
+            throw GhosttyError.message("unexpected argument: \(arg)")
         }
 
         // Validate direction
         guard let direction else {
-            throw GhostmuxError.message("resize-pane requires -d <direction>")
+            throw GhosttyError.message("resize-pane requires -d <direction>")
         }
 
         let validDirections = ["left", "right", "up", "down"]
         guard validDirections.contains(direction) else {
-            throw GhostmuxError.message("invalid direction '\(direction)': must be left, right, up, or down")
+            throw GhosttyError.message("invalid direction '\(direction)': must be left, right, up, or down")
         }
 
         // Resolve target
@@ -89,12 +90,12 @@ struct ResizePaneCommand: GhostmuxCommand {
         } else if let envTarget = ProcessInfo.processInfo.environment["GHOSTTY_SURFACE_UUID"] {
             resolvedTarget = envTarget
         } else {
-            throw GhostmuxError.message("resize-pane requires -t <target> or $GHOSTTY_SURFACE_UUID")
+            throw GhosttyError.message("resize-pane requires -t <target> or $GHOSTTY_SURFACE_UUID")
         }
 
         let terminals = try context.client.listTerminals()
         guard let targetTerminal = resolveTarget(resolvedTarget, terminals: terminals) else {
-            throw GhostmuxError.message("can't find terminal: \(resolvedTarget)")
+            throw GhosttyError.message("can't find terminal: \(resolvedTarget)")
         }
 
         // Execute resize action

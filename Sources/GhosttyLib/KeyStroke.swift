@@ -1,6 +1,6 @@
 import Foundation
 
-func keyStrokeForScalar(_ scalar: UnicodeScalar) -> KeyStroke? {
+public func keyStrokeForScalar(_ scalar: UnicodeScalar) -> KeyStroke? {
     switch scalar.value {
     case 0x09:
         return KeyStroke(key: "tab", mods: [], text: "\t", unshiftedCodepoint: scalar.value)
@@ -67,18 +67,18 @@ func keyStrokeForScalar(_ scalar: UnicodeScalar) -> KeyStroke? {
     }
 }
 
-func strokesForLiteral(_ text: String) throws -> [KeyStroke] {
+public func strokesForLiteral(_ text: String) throws -> [KeyStroke] {
     var strokes: [KeyStroke] = []
     for scalar in text.unicodeScalars {
         guard let stroke = keyStrokeForScalar(scalar) else {
-            throw GhostmuxError.message("unsupported character: \(scalar)")
+            throw GhosttyError.message("unsupported character: \(scalar)")
         }
         strokes.append(stroke)
     }
     return strokes
 }
 
-func strokesForToken(_ token: String) throws -> [KeyStroke] {
+public func strokesForToken(_ token: String) throws -> [KeyStroke] {
     let lower = token.lowercased()
     let namedKeys: [String: KeyStroke] = [
         "enter": KeyStroke(key: "enter", mods: [], text: "\n", unshiftedCodepoint: 0x0A),
@@ -102,7 +102,7 @@ func strokesForToken(_ token: String) throws -> [KeyStroke] {
         if lower.hasPrefix(prefix) {
             let remainder = String(token.dropFirst(prefix.count))
             if remainder.isEmpty {
-                throw GhostmuxError.message("invalid key: \(token)")
+                throw GhosttyError.message("invalid key: \(token)")
             }
             if let named = namedKeys[remainder.lowercased()] {
                 return [KeyStroke(
@@ -121,7 +121,7 @@ func strokesForToken(_ token: String) throws -> [KeyStroke] {
                     unshiftedCodepoint: base.unshiftedCodepoint
                 )]
             }
-            throw GhostmuxError.message("unsupported key: \(token)")
+            throw GhosttyError.message("unsupported key: \(token)")
         }
     }
 

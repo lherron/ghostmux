@@ -10,7 +10,8 @@ ghostchat - Inter-agent messaging for Claude Code sessions
 ABOUT
   ghostchat enables Claude Code agents running in different terminal sessions
   to communicate with each other by sending text messages. Each terminal has
-  a unique friendly name derived from its UUID.
+  a unique friendly name derived from its UUID.  Chat will be injected as a user
+  message with appropraite tagging to identify the sender.
 
 YOUR IDENTITY
   Name: %NAME%
@@ -20,11 +21,9 @@ PROTOCOL
   Messages are sent as: [ghostchat:<sender-name>] <message>
 
   When you receive a message starting with [ghostchat:...], another agent
-  is communicating with you. Parse the sender name from the brackets to
-  identify who sent it.
+  is communicating with you.
 
 COMMANDS
-  ghostchat info          Show this tutorial and your identity
   ghostchat list          List all available terminals with their names
   ghostchat send <target> <message>
                           Send a message to another terminal
@@ -32,8 +31,6 @@ COMMANDS
   <target> can be:
     - Friendly name (e.g., "swift-falcon")
     - UUID prefix (e.g., "550e8400")
-    - Full UUID
-    - Terminal title (partial match)
 
 EXAMPLES
   ghostchat list
@@ -43,7 +40,7 @@ EXAMPLES
 TIPS
   - Messages are single-line only (newlines are removed)
   - Use quotes around messages with spaces
-  - Run 'ghostchat list' to see available targets
+  - Run 'ghostchat list' to see available online agents
 """
 
 private let usage = """

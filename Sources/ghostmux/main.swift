@@ -23,6 +23,7 @@ Commands:
   send-key              Send a key without Enter (requires -t)
   set-title             Set terminal title (requires -t)
   statusbar             Control the programmable status bar (requires -t)
+  metadata              Get/set terminal metadata (requires -t)
   capture-pane, capturep  Capture pane contents (visible only by default)
   stream-surface, stream  Stream raw PTY output in real-time (requires -t)
 
@@ -66,6 +67,7 @@ private let commandTypes: [GhostmuxCommand.Type] = [
     SendKeyCommand.self,
     SetTitleCommand.self,
     StatusBarCommand.self,
+    MetadataCommand.self,
     CapturePaneCommand.self,
     StreamSurfaceCommand.self,
 ]

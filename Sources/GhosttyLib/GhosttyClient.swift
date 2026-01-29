@@ -166,6 +166,99 @@ public final class GhosttyClient {
         }
     }
 
+    public func getMetadata(
+        terminalId: String,
+        scope: String? = nil,
+        resolved: Bool? = nil
+    ) throws -> [String: Any] {
+        var query: [String: String] = [:]
+        if let scope { query["scope"] = scope }
+        if let resolved { query["resolved"] = resolved ? "true" : "false" }
+
+        let response = try request(
+            version: "v2",
+            method: "GET",
+            path: "/terminals/\(terminalId)/metadata",
+            query: query
+        )
+        guard response.status == 200 else {
+            throw GhosttyError.apiError(response.status, response.bodyError)
+        }
+        return response.body?["data"] as? [String: Any] ?? [:]
+    }
+
+    public func mergeMetadata(
+        terminalId: String,
+        data: [String: Any],
+        scope: String? = nil,
+        method: String = "PATCH"
+    ) throws -> [String: Any] {
+        let verb = method.uppercased()
+        guard verb == "PATCH" || verb == "POST" else {
+            throw GhosttyError.message("metadata merge supports PATCH or POST")
+        }
+        guard JSONSerialization.isValidJSONObject(data) else {
+            throw GhosttyError.message("metadata values must be valid JSON")
+        }
+
+        var body: [String: Any] = ["data": data]
+        if let scope { body["scope"] = scope }
+
+        let response = try request(
+            version: "v2",
+            method: verb,
+            path: "/terminals/\(terminalId)/metadata",
+            body: body
+        )
+        guard response.status == 200 else {
+            throw GhosttyError.apiError(response.status, response.bodyError)
+        }
+        return response.body?["data"] as? [String: Any] ?? [:]
+    }
+
+    public func replaceMetadata(
+        terminalId: String,
+        data: [String: Any],
+        scope: String? = nil
+    ) throws -> [String: Any] {
+        guard JSONSerialization.isValidJSONObject(data) else {
+            throw GhosttyError.message("metadata values must be valid JSON")
+        }
+
+        var body: [String: Any] = ["data": data]
+        if let scope { body["scope"] = scope }
+
+        let response = try request(
+            version: "v2",
+            method: "PUT",
+            path: "/terminals/\(terminalId)/metadata",
+            body: body
+        )
+        guard response.status == 200 else {
+            throw GhosttyError.apiError(response.status, response.bodyError)
+        }
+        return response.body?["data"] as? [String: Any] ?? [:]
+    }
+
+    public func deleteMetadata(
+        terminalId: String,
+        scope: String? = nil
+    ) throws -> [String: Any] {
+        var query: [String: String] = [:]
+        if let scope { query["scope"] = scope }
+
+        let response = try request(
+            version: "v2",
+            method: "DELETE",
+            path: "/terminals/\(terminalId)/metadata",
+            query: query
+        )
+        guard response.status == 200 else {
+            throw GhosttyError.apiError(response.status, response.bodyError)
+        }
+        return response.body?["data"] as? [String: Any] ?? [:]
+    }
+
     public func getScreenContents(terminalId: String) throws -> String {
         let response = try request(version: "v2", method: "GET", path: "/terminals/\(terminalId)/screen")
         guard response.status == 200 else {

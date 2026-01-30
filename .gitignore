@@ -1,7 +1,16 @@
 .build/
 .swiftpm/
+.index-build/
+Package.resolved
 *.xcodeproj
+*.xcworkspace
 xcuserdata/
 DerivedData/
 .DS_Store
 .vscode/
+
+# Agent Spaces modules (rebuilt output)
+asp_modules/
+
+# ASP cache
+.asp-cache.json

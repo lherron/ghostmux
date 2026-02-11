@@ -11,6 +11,7 @@ DerivedData/
 
 # Agent Spaces modules (rebuilt output)
 asp_modules/
+asp-lock.json
 
 # ASP cache
 .asp-cache.json

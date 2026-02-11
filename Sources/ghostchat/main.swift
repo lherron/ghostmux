@@ -25,6 +25,7 @@ PROTOCOL
 
 COMMANDS
   ghostchat list          List all available terminals with their names
+  ghostchat identity      Get or set your terminal's identity metadata
   ghostchat send <target> <message>
                           Send a message to another terminal
 
@@ -32,8 +33,17 @@ COMMANDS
     - Friendly name (e.g., "swift-falcon")
     - UUID prefix (e.g., "550e8400")
 
+IDENTITY
+  Set your role, project, and task so others can see what you're doing:
+    ghostchat identity --role builder --project ghostmux --task add-identity
+  View your current identity:
+    ghostchat identity
+  Clear your identity:
+    ghostchat identity --clear
+
 EXAMPLES
   ghostchat list
+  ghostchat identity --role builder --project ghostmux
   ghostchat send swift-falcon "Hello, I need help with the API"
   ghostchat send 550e8400 "Can you check the test results?"
 
@@ -41,6 +51,7 @@ TIPS
   - Messages are single-line only (newlines are removed)
   - Use quotes around messages with spaces
   - Run 'ghostchat list' to see available online agents
+  - Identity fields must not contain spaces (use dashes instead)
 """
 
 private let usage = """
@@ -52,11 +63,12 @@ Usage:
 Commands:
   info                    Show tutorial and your identity
   list                    List all terminals with friendly names
+  identity                Get or set your terminal identity
   send <target> <msg>     Send a message to another terminal
 
 Options:
   -h, --help              Show this help
-  --json                  Output JSON (for list command)
+  --json                  Output JSON (for list/identity commands)
 
 Run 'ghostchat info' for detailed usage instructions.
 """
@@ -77,6 +89,22 @@ func printInfo() {
         .replacingOccurrences(of: "%NAME%", with: myName)
         .replacingOccurrences(of: "%UUID%", with: myUUID)
     print(output)
+}
+
+let identityKeys = ["ghostchat.role", "ghostchat.project", "ghostchat.task"]
+
+func fetchIdentity(client: GhosttyClient, terminalId: String) -> [String: String] {
+    guard let meta = try? client.getMetadata(terminalId: terminalId) else {
+        return [:]
+    }
+    var identity: [String: String] = [:]
+    for key in identityKeys {
+        if let val = meta[key] as? String, !val.isEmpty {
+            let shortKey = String(key.dropFirst("ghostchat.".count))
+            identity[shortKey] = val
+        }
+    }
+    return identity
 }
 
 func printList(json: Bool) throws {
@@ -100,6 +128,10 @@ func printList(json: Bool) throws {
             if terminal.id == myUUID {
                 entry["is_me"] = true
             }
+            let identity = fetchIdentity(client: client, terminalId: terminal.id)
+            if !identity.isEmpty {
+                entry["identity"] = identity
+            }
             return entry
         }
         writeJSON(["terminals": payload])
@@ -111,19 +143,129 @@ func printList(json: Bool) throws {
         return
     }
 
+    // Pre-compute columns for alignment
+    struct Row {
+        let nameCol: String
+        let shortId: String
+        let cwdShort: String
+        let identitySuffix: String
+        let focused: Bool
+    }
+
+    var rows: [Row] = []
+    var maxName = 0
+    var maxCwd = 0
+
     for terminal in terminals {
         let name = NameGenerator.nameFromUUID(terminal.id)
-        let shortId = NameGenerator.shortUUID(terminal.id)
         let isMe = terminal.id == myUUID ? " (you)" : ""
-        let focused = terminal.focused ? " *" : ""
+        let nameCol = "\(name)\(isMe)"
+        let shortId = NameGenerator.shortUUID(terminal.id)
 
-        var titlePart = terminal.title
+        let cwdShort: String
         if let cwd = terminal.workingDirectory {
-            let shortCwd = (cwd as NSString).lastPathComponent
-            titlePart += " (\(shortCwd))"
+            cwdShort = (cwd as NSString).lastPathComponent
+        } else {
+            cwdShort = terminal.title
         }
 
-        print("\(name)\(isMe)  \(shortId)  \(titlePart)\(focused)")
+        let identity = fetchIdentity(client: client, terminalId: terminal.id)
+        var suffix = ""
+        if let role = identity["role"] {
+            suffix += "[\(role)]"
+        }
+        if let task = identity["task"] {
+            suffix += suffix.isEmpty ? task : " \(task)"
+        }
+
+        maxName = max(maxName, nameCol.count)
+        maxCwd = max(maxCwd, cwdShort.count)
+        rows.append(Row(nameCol: nameCol, shortId: shortId, cwdShort: cwdShort, identitySuffix: suffix, focused: terminal.focused))
+    }
+
+    for row in rows {
+        let namePad = row.nameCol.padding(toLength: maxName, withPad: " ", startingAt: 0)
+        let cwdPad = row.cwdShort.padding(toLength: maxCwd, withPad: " ", startingAt: 0)
+        let focused = row.focused ? " *" : ""
+        var line = "\(namePad)  \(row.shortId)  \(cwdPad)"
+        if !row.identitySuffix.isEmpty {
+            line += "  \(row.identitySuffix)"
+        }
+        line += focused
+        print(line)
+    }
+}
+
+func handleIdentity(args: [String]) throws {
+    guard let myUUID = getMyUUID() else {
+        throw GhosttyError.message("$GHOSTTY_SURFACE_UUID not set - are you in a Ghostty terminal?")
+    }
+
+    let client = GhosttyClient(socketPath: defaultSocketPath())
+    let json = args.contains("--json")
+
+    // --clear: remove all ghostchat.* keys
+    if args.contains("--clear") {
+        // Get current metadata, rebuild without ghostchat.* keys
+        let current = try client.getMetadata(terminalId: myUUID)
+        var cleaned: [String: Any] = [:]
+        for (key, val) in current where !key.hasPrefix("ghostchat.") {
+            cleaned[key] = val
+        }
+        _ = try client.replaceMetadata(terminalId: myUUID, data: cleaned)
+        print("Identity cleared.")
+        return
+    }
+
+    // Parse --role, --project, --task flags
+    var setFields: [String: String] = [:]
+    let flagMap = ["--role": "ghostchat.role", "--project": "ghostchat.project", "--task": "ghostchat.task"]
+
+    var i = 0
+    while i < args.count {
+        if let metaKey = flagMap[args[i]] {
+            guard i + 1 < args.count else {
+                throw GhosttyError.message("\(args[i]) requires a value")
+            }
+            let value = args[i + 1]
+            if value.contains(" ") || value.contains("\t") {
+                throw GhosttyError.message("identity fields must not contain spaces (got \"\(value)\", try \"\(value.replacingOccurrences(of: " ", with: "-"))\")")
+            }
+            setFields[metaKey] = value
+            i += 2
+        } else {
+            i += 1
+        }
+    }
+
+    // If setting fields, merge them
+    if !setFields.isEmpty {
+        _ = try client.mergeMetadata(terminalId: myUUID, data: setFields)
+    }
+
+    // Always display current identity
+    let identity = fetchIdentity(client: client, terminalId: myUUID)
+    let myName = NameGenerator.nameFromUUID(myUUID)
+
+    if json {
+        var payload: [String: Any] = [
+            "name": myName,
+            "id": myUUID
+        ]
+        if !identity.isEmpty {
+            payload["identity"] = identity
+        }
+        writeJSON(payload)
+    } else {
+        if identity.isEmpty {
+            print("\(myName)  (no identity set)")
+        } else {
+            var parts: [String] = [myName]
+            if let role = identity["role"] { parts.append("[\(role)]") }
+            if let project = identity["project"] { parts.append("project:\(project)") }
+            if let task = identity["task"] { parts.append("task:\(task)") }
+            print(parts.joined(separator: "  "))
+        }
     }
 }
 
@@ -206,6 +348,9 @@ func main() {
         case "list", "ls":
             let json = args.contains("--json")
             try printList(json: json)
+
+        case "identity", "id":
+            try handleIdentity(args: Array(args.dropFirst()))
 
         case "send":
             if args.count < 3 {

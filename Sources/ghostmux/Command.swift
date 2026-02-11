@@ -14,23 +14,22 @@ protocol GhostmuxCommand {
 }
 
 func terminalSummary(_ terminal: Terminal) -> String {
+    let name = NameGenerator.nameFromUUID(terminal.id)
     let shortId = String(terminal.id.prefix(8))
-    let size = terminal.columns.flatMap { columns in
-        terminal.rows.map { rows in "[\(columns)x\(rows)]" }
-    }
 
-    var titlePart = terminal.title
-    if let cwd = terminal.workingDirectory {
-        titlePart += " (\(cwd))"
-    }
+    var output = "Created pane: \(name) (\(shortId))"
 
-    var parts: [String] = [shortId, titlePart]
-    if let size {
-        parts.append(size)
-    }
     if terminal.focused {
-        parts.append("(focused)")
+        output += " - now focused"
     }
 
-    return parts.joined(separator: " ")
+    if let cwd = terminal.workingDirectory {
+        output += "\nWorking directory: \(cwd)"
+    }
+
+    if let columns = terminal.columns, let rows = terminal.rows {
+        output += "\nSize: \(columns)x\(rows)"
+    }
+
+    return output
 }

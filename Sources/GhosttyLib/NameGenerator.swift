@@ -2,7 +2,7 @@ import Foundation
 
 /// Generates deterministic friendly names from UUIDs
 /// Same UUID always produces the same name
-struct NameGenerator {
+public struct NameGenerator {
     // 50 adjectives for variety (50 * 50 = 2500 unique names)
     private static let adjectives = [
         "swift", "bold", "calm", "keen", "warm",
@@ -33,7 +33,7 @@ struct NameGenerator {
 
     /// Generate a friendly name from a UUID string
     /// The name is deterministic - same UUID always produces same name
-    static func nameFromUUID(_ uuid: String) -> String {
+    public static func nameFromUUID(_ uuid: String) -> String {
         // Use first 8 chars of UUID as seed
         let cleanUUID = uuid.replacingOccurrences(of: "-", with: "").lowercased()
 
@@ -52,7 +52,7 @@ struct NameGenerator {
     }
 
     /// Get short UUID (first 8 chars)
-    static func shortUUID(_ uuid: String) -> String {
+    public static func shortUUID(_ uuid: String) -> String {
         String(uuid.prefix(8))
     }
 }

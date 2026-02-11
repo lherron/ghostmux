@@ -91,6 +91,8 @@ extension Terminal {
     public func toJsonDict() -> [String: Any] {
         var dict: [String: Any] = [
             "id": id,
+            "name": NameGenerator.nameFromUUID(id),
+            "short_id": NameGenerator.shortUUID(id),
             "title": title,
             "focused": focused,
         ]

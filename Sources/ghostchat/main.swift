@@ -21,7 +21,18 @@ PROTOCOL
   Messages are sent as: [ghostchat:<sender-name>] <message>
 
   When you receive a message starting with [ghostchat:...], another agent
-  is communicating with you.
+  is communicating with you. Reply using ghostchat send whenever a response
+  is warranted (questions, requests, actionable info). You can skip replying
+  to purely conversational closers like "thanks" or "have a nice day".
+
+INCOMING MESSAGE EXAMPLE
+  An incoming message will appear in your conversation like this:
+
+    [ghostchat:swift-falcon] Hey, can you check if the API tests pass?
+
+  When you see this, reply with:
+
+    ghostchat send swift-falcon "Tests are passing, all good!"
 
 COMMANDS
   ghostchat list          List all available terminals with their names

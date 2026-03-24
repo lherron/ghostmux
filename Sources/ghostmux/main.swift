@@ -21,6 +21,7 @@ Commands:
   set-bg                Set terminal background color (requires -t)
   send-keys             Send keys + Enter to a terminal (requires -t)
   send-key              Send a key without Enter (requires -t)
+  attach-host-session   Bind a surface to an Animata host session (requires -t)
   set-title             Set terminal title (requires -t)
   statusbar             Control the programmable status bar (requires -t)
   metadata              Get/set terminal metadata (requires -t)
@@ -46,6 +47,7 @@ Examples:
   ghostmux equalize-panes                       # Make all panes equal size
   ghostmux send-keys -t 1a2b3c4d "ls -la"
   ghostmux send-key -t 550e8400 C-c
+  ghostmux attach-host-session -t 1a2b3c4d animata-host://workspace/animata:center
   ghostmux set-title -t 1a2b3c4d "build: ghostty"
   ghostmux statusbar set -t 1a2b3c4d "left|center|right"
   ghostmux capture-pane -t 550e8400
@@ -65,6 +67,7 @@ private let commandTypes: [GhostmuxCommand.Type] = [
     SetBackgroundCommand.self,
     SendKeysCommand.self,
     SendKeyCommand.self,
+    AttachHostSessionCommand.self,
     SetTitleCommand.self,
     StatusBarCommand.self,
     MetadataCommand.self,

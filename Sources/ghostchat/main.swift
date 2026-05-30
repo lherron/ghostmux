@@ -87,7 +87,7 @@ Run 'ghostchat info' for detailed usage instructions.
 // MARK: - Main
 
 func getMyUUID() -> String? {
-    ProcessInfo.processInfo.environment["GHOSTTY_SURFACE_UUID"]
+    resolveEnv("GHOSTTY_SURFACE_UUID")
 }
 
 func printInfo() {

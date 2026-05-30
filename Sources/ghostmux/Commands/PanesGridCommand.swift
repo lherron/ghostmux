@@ -97,7 +97,7 @@ struct PanesGridCommand: GhostmuxCommand {
                 throw GhosttyError.message("can't find terminal: \(target)")
             }
             startingId = targetTerminal.id
-        } else if let envTarget = ProcessInfo.processInfo.environment["GHOSTTY_SURFACE_UUID"] {
+        } else if let envTarget = resolveEnv("GHOSTTY_SURFACE_UUID") {
             startingId = envTarget
         } else {
             // Use focused terminal

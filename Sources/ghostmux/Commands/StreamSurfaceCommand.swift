@@ -49,7 +49,7 @@ struct StreamSurfaceCommand: GhostmuxCommand {
         let resolvedTarget: String
         if let target {
             resolvedTarget = target
-        } else if let envTarget = ProcessInfo.processInfo.environment["GHOSTTY_SURFACE_UUID"] {
+        } else if let envTarget = resolveEnv("GHOSTTY_SURFACE_UUID") {
             resolvedTarget = envTarget
         } else {
             throw GhosttyError.message("stream-surface requires -t <target> or $GHOSTTY_SURFACE_UUID")

@@ -106,7 +106,7 @@ struct NewPaneCommand: GhostmuxCommand {
         let resolvedTarget: String
         if let target {
             resolvedTarget = target
-        } else if let envTarget = ProcessInfo.processInfo.environment["GHOSTTY_SURFACE_UUID"] {
+        } else if let envTarget = resolveEnv("GHOSTTY_SURFACE_UUID") {
             resolvedTarget = envTarget
         } else {
             // No target specified - API will use focused terminal

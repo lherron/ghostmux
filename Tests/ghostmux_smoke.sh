@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
-BIN="$ROOT/macos/build/ghostmux/ghostmux"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BIN="${GHOSTMUX_BIN:-$ROOT/.build/debug/ghostmux}"
 
 if [[ ! -x "$BIN" ]]; then
   echo "ghostmux binary not found at $BIN"
@@ -19,13 +19,13 @@ if [[ ! -S "$SOCK" ]]; then
   exit 0
 fi
 
-sessions="$("$BIN" list-surfaces)"
-if [[ -z "$sessions" ]] || [[ "$sessions" == "(no terminals)" ]]; then
+surfaces="$("$BIN" list-surfaces)"
+if [[ -z "$surfaces" ]] || [[ "$surfaces" == "(no terminals)" ]]; then
   echo "SKIP: no terminals"
   exit 0
 fi
 
-target="$(printf '%s\n' "$sessions" | head -n 1 | cut -d: -f1)"
+target="$(printf '%s\n' "$surfaces" | sed -n 's/^Created pane: .* (\([^)]*\)).*/\1/p' | head -n 1)"
 if [[ -z "$target" ]]; then
   echo "SKIP: could not parse target"
   exit 0

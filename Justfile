@@ -15,7 +15,7 @@ build-release:
     swift build -c release
 
 # Run smoke tests
-test:
+test: build
     @bash Tests/ghostmux_smoke.sh
 
 # Install to ~/.local/bin

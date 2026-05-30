@@ -11,6 +11,7 @@ struct NewCommand: GhostmuxCommand {
     Options:
       --window              Create a new window (default)
       --tab                 Create a new tab
+      --focus               Focus the created terminal (default: do not focus)
       --cwd <path>          Initial working directory
       --title <title>       Set terminal title after creation
       --command <cmd>       Command to run after shell init
@@ -19,8 +20,12 @@ struct NewCommand: GhostmuxCommand {
       --json                Output JSON
       -h, --help            Show this help
 
+    By default the new terminal is created in the background without stealing
+    focus. Pass --focus to move focus to the created window/tab.
+
     Examples:
       ghostmux new --title 'build: project' --tab --cwd /tmp
+      ghostmux new --focus
     """
 
     static func run(context: CommandContext) throws {
@@ -31,6 +36,7 @@ struct NewCommand: GhostmuxCommand {
         var env: [String: String] = [:]
         var parent: String?
         var json = false
+        var focus = false
 
         var i = 0
         while i < context.args.count {
@@ -44,6 +50,12 @@ struct NewCommand: GhostmuxCommand {
 
             if arg == "--tab" {
                 location = "tab"
+                i += 1
+                continue
+            }
+
+            if arg == "--focus" {
+                focus = true
                 i += 1
                 continue
             }
@@ -106,7 +118,8 @@ struct NewCommand: GhostmuxCommand {
             workingDirectory: workingDirectory,
             command: command,
             env: env.isEmpty ? nil : env,
-            parent: parent
+            parent: parent,
+            focus: focus
         )
 
         let terminal = try context.client.createTerminal(request: request)

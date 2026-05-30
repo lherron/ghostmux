@@ -37,19 +37,24 @@ public struct CreateTerminalRequest {
     public var command: String?
     public var env: [String: String]?
     public var parent: String?
+    /// Whether to focus/activate the created terminal. nil omits the field, letting
+    /// the backend apply its default (focusing) for backward compatibility.
+    public var focus: Bool?
 
     public init(
         location: String? = nil,
         workingDirectory: String? = nil,
         command: String? = nil,
         env: [String: String]? = nil,
-        parent: String? = nil
+        parent: String? = nil,
+        focus: Bool? = nil
     ) {
         self.location = location
         self.workingDirectory = workingDirectory
         self.command = command
         self.env = env
         self.parent = parent
+        self.focus = focus
     }
 
     public func toBody() -> [String: Any] {
@@ -68,6 +73,9 @@ public struct CreateTerminalRequest {
         }
         if let parent {
             body["parent"] = parent
+        }
+        if let focus {
+            body["focus"] = focus
         }
         return body
     }

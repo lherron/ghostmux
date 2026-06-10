@@ -17,4 +17,4 @@ compose = ["space:ralph-build-loop@dev"]
 [targets.smokey]
 yolo = true
 description = "Smoke test runner"
-compose = ["space:smokey@dev", "space:defaults@stable"]
+compose = ["space:smokey@dev", "space:defaults@dev"]

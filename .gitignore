@@ -6,6 +6,7 @@ Package.resolved
 *.xcworkspace
 xcuserdata/
 DerivedData/
+*.profraw
 .DS_Store
 .vscode/
 

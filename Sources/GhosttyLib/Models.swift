@@ -31,6 +31,47 @@ public struct Terminal {
     }
 }
 
+public struct StatusBarInfo {
+    public let left: String
+    public let center: String
+    public let right: String
+    public let visible: Bool
+    public let fg: String?
+    public let bg: String?
+    public let scope: String
+
+    public init(
+        left: String,
+        center: String,
+        right: String,
+        visible: Bool,
+        fg: String?,
+        bg: String?,
+        scope: String
+    ) {
+        self.left = left
+        self.center = center
+        self.right = right
+        self.visible = visible
+        self.fg = fg
+        self.bg = bg
+        self.scope = scope
+    }
+
+    public func toJsonDict() -> [String: Any] {
+        var dict: [String: Any] = [
+            "left": left,
+            "center": center,
+            "right": right,
+            "visible": visible,
+            "scope": scope,
+        ]
+        dict["fg"] = fg ?? NSNull()
+        dict["bg"] = bg ?? NSNull()
+        return dict
+    }
+}
+
 public struct CreateTerminalRequest {
     public var location: String?
     public var workingDirectory: String?

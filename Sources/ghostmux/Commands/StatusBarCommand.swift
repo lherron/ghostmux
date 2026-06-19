@@ -8,9 +8,13 @@ struct StatusBarCommand: GhostmuxCommand {
     Usage:
       ghostmux statusbar set -t <target> "left|center|right" [--fg <color>] [--bg <color>]
       ghostmux statusbar set -t <target> --fg <color> --bg <color>
+      ghostmux statusbar get -t <target> [--json]
       ghostmux statusbar show -t <target>
       ghostmux statusbar hide -t <target>
       ghostmux statusbar toggle -t <target>
+
+      Note: "show" makes the bar visible; "get" reads back the configured spec
+      (left/center/right text, fg, bg, visible state).
 
       Use empty fields for blanks, e.g. "left||right"
 
@@ -135,6 +139,23 @@ struct StatusBarCommand: GhostmuxCommand {
                 fg: fgColor,
                 bg: bgColor
             )
+        case "get":
+            if positional.count > 1 {
+                throw GhosttyError.message("statusbar get does not take extra arguments")
+            }
+            let info = try context.client.getStatusBar(terminalId: targetTerminal.id, scope: scope)
+            if json {
+                writeJSON(info.toJsonDict())
+            } else {
+                print("left:    \(info.left)")
+                print("center:  \(info.center)")
+                print("right:   \(info.right)")
+                print("visible: \(info.visible)")
+                print("fg:      \(info.fg ?? "default")")
+                print("bg:      \(info.bg ?? "default")")
+                print("scope:   \(info.scope)")
+            }
+            return
         case "show":
             if positional.count > 1 {
                 throw GhosttyError.message("statusbar show does not take extra arguments")

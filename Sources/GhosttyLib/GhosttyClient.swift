@@ -166,6 +166,36 @@ public final class GhosttyClient {
         }
     }
 
+    public func getStatusBar(
+        terminalId: String,
+        scope: String? = nil
+    ) throws -> StatusBarInfo {
+        var query: [String: String] = [:]
+        if let scope { query["scope"] = scope }
+
+        let response = try request(
+            version: "v2",
+            method: "GET",
+            path: "/terminals/\(terminalId)/statusbar",
+            query: query
+        )
+        guard response.status == 200 else {
+            throw GhosttyError.apiError(response.status, response.bodyError)
+        }
+        guard let body = response.body else {
+            throw GhosttyError.message("invalid statusbar response")
+        }
+        return StatusBarInfo(
+            left: body["left"] as? String ?? "",
+            center: body["center"] as? String ?? "",
+            right: body["right"] as? String ?? "",
+            visible: body["visible"] as? Bool ?? false,
+            fg: body["fg"] as? String,
+            bg: body["bg"] as? String,
+            scope: body["scope"] as? String ?? "surface"
+        )
+    }
+
     public func getMetadata(
         terminalId: String,
         scope: String? = nil,

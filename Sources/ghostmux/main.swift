@@ -18,6 +18,7 @@ Commands:
   resize-pane           Resize a pane (requires -t and -d)
   equalize-panes        Make all panes equal size (requires -t or $GHOSTTY_SURFACE_UUID)
   kill-surface          Close a terminal (requires -t)
+  focus                 Raise a terminal's window to the foreground (requires -t)
   set-bg                Set terminal background color (requires -t)
   send-keys             Send keys + Enter to a terminal (requires -t)
   send-key              Send a key without Enter (requires -t)
@@ -64,6 +65,7 @@ private let commandTypes: [GhostmuxCommand.Type] = [
     ResizePaneCommand.self,
     EqualizePanesCommand.self,
     KillSurfaceCommand.self,
+    FocusCommand.self,
     SetBackgroundCommand.self,
     SendKeysCommand.self,
     SendKeyCommand.self,

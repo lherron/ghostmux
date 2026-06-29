@@ -37,4 +37,4 @@ clean:
 
 # Format Swift code
 format:
-    swift-format format -i -r Sources/
+    xcrun swift-format format -i -r Sources/

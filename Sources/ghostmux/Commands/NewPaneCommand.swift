@@ -2,9 +2,9 @@ import Foundation
 import GhosttyLib
 
 struct NewPaneCommand: GhostmuxCommand {
-    static let name = "new-pane"
-    static let aliases = ["splitp", "split-pane"]
-    static let help = """
+  static let name = "new-pane"
+  static let aliases = ["splitp", "split-pane"]
+  static let help = """
     Usage:
       ghostmux new-pane [options]
 
@@ -31,115 +31,116 @@ struct NewPaneCommand: GhostmuxCommand {
       ghostmux new-pane -d down --cwd /tmp        # Split down with working directory
     """
 
-    static func run(context: CommandContext) throws {
-        var target: String?
-        var direction = "right"
-        var workingDirectory: String?
-        var command: String?
-        var env: [String: String] = [:]
-        var json = false
+  static func run(context: CommandContext) throws {
+    var target: String?
+    var direction = "right"
+    var workingDirectory: String?
+    var command: String?
+    var env: [String: String] = [:]
+    var json = false
 
-        var i = 0
-        while i < context.args.count {
-            let arg = context.args[i]
+    var i = 0
+    while i < context.args.count {
+      let arg = context.args[i]
 
-            if arg == "-t", i + 1 < context.args.count {
-                target = context.args[i + 1]
-                i += 2
-                continue
-            }
+      if arg == "-t", i + 1 < context.args.count {
+        target = context.args[i + 1]
+        i += 2
+        continue
+      }
 
-            if (arg == "-d" || arg == "--direction"), i + 1 < context.args.count {
-                direction = context.args[i + 1].lowercased()
-                i += 2
-                continue
-            }
+      if arg == "-d" || arg == "--direction", i + 1 < context.args.count {
+        direction = context.args[i + 1].lowercased()
+        i += 2
+        continue
+      }
 
-            if arg == "--cwd", i + 1 < context.args.count {
-                workingDirectory = context.args[i + 1]
-                i += 2
-                continue
-            }
+      if arg == "--cwd", i + 1 < context.args.count {
+        workingDirectory = context.args[i + 1]
+        i += 2
+        continue
+      }
 
-            if arg == "--command", i + 1 < context.args.count {
-                command = context.args[i + 1]
-                i += 2
-                continue
-            }
+      if arg == "--command", i + 1 < context.args.count {
+        command = context.args[i + 1]
+        i += 2
+        continue
+      }
 
-            if arg == "--env", i + 1 < context.args.count {
-                let pair = context.args[i + 1]
-                guard let eqIndex = pair.firstIndex(of: "=") else {
-                    throw GhosttyError.message("env must be in KEY=VALUE form")
-                }
-                let key = String(pair[..<eqIndex])
-                let value = String(pair[pair.index(after: eqIndex)...])
-                if key.isEmpty {
-                    throw GhosttyError.message("env key must be non-empty")
-                }
-                env[key] = value
-                i += 2
-                continue
-            }
-
-            if arg == "--json" {
-                json = true
-                i += 1
-                continue
-            }
-
-            if arg == "-h" || arg == "--help" {
-                print(help)
-                return
-            }
-
-            throw GhosttyError.message("unexpected argument: \(arg)")
+      if arg == "--env", i + 1 < context.args.count {
+        let pair = context.args[i + 1]
+        guard let eqIndex = pair.firstIndex(of: "=") else {
+          throw GhosttyError.message("env must be in KEY=VALUE form")
         }
-
-        // Validate direction
-        let validDirections = ["left", "right", "up", "down"]
-        guard validDirections.contains(direction) else {
-            throw GhosttyError.message("invalid direction '\(direction)': must be left, right, up, or down")
+        let key = String(pair[..<eqIndex])
+        let value = String(pair[pair.index(after: eqIndex)...])
+        if key.isEmpty {
+          throw GhosttyError.message("env key must be non-empty")
         }
+        env[key] = value
+        i += 2
+        continue
+      }
 
-        // Resolve target
-        let resolvedTarget: String
-        if let target {
-            resolvedTarget = target
-        } else if let envTarget = resolveEnv("GHOSTTY_SURFACE_UUID") {
-            resolvedTarget = envTarget
-        } else {
-            // No target specified - API will use focused terminal
-            resolvedTarget = ""
-        }
+      if arg == "--json" {
+        json = true
+        i += 1
+        continue
+      }
 
-        // Find parent terminal if target specified
-        var parentId: String?
-        if !resolvedTarget.isEmpty {
-            let terminals = try context.client.listTerminals()
-            guard let targetTerminal = resolveTarget(resolvedTarget, terminals: terminals) else {
-                throw GhosttyError.message("can't find terminal: \(resolvedTarget)")
-            }
-            parentId = targetTerminal.id
-        }
+      if arg == "-h" || arg == "--help" {
+        print(help)
+        return
+      }
 
-        // Create the split
-        let location = "split:\(direction)"
-        let request = CreateTerminalRequest(
-            location: location,
-            workingDirectory: workingDirectory,
-            command: command,
-            env: env.isEmpty ? nil : env,
-            parent: parentId
-        )
-
-        let terminal = try context.client.createTerminal(request: request)
-
-        if json {
-            writeJSON(terminal.toJsonDict())
-            return
-        }
-
-        print(terminalSummary(terminal))
+      throw GhosttyError.message("unexpected argument: \(arg)")
     }
+
+    // Validate direction
+    let validDirections = ["left", "right", "up", "down"]
+    guard validDirections.contains(direction) else {
+      throw GhosttyError.message(
+        "invalid direction '\(direction)': must be left, right, up, or down")
+    }
+
+    // Resolve target
+    let resolvedTarget: String
+    if let target {
+      resolvedTarget = target
+    } else if let envTarget = resolveEnv("GHOSTTY_SURFACE_UUID") {
+      resolvedTarget = envTarget
+    } else {
+      // No target specified - API will use focused terminal
+      resolvedTarget = ""
+    }
+
+    // Find parent terminal if target specified
+    var parentId: String?
+    if !resolvedTarget.isEmpty {
+      let terminals = try context.client.listTerminals()
+      guard let targetTerminal = resolveTarget(resolvedTarget, terminals: terminals) else {
+        throw GhosttyError.message("can't find terminal: \(resolvedTarget)")
+      }
+      parentId = targetTerminal.id
+    }
+
+    // Create the split
+    let location = "split:\(direction)"
+    let request = CreateTerminalRequest(
+      location: location,
+      workingDirectory: workingDirectory,
+      command: command,
+      env: env.isEmpty ? nil : env,
+      parent: parentId
+    )
+
+    let terminal = try context.client.createTerminal(request: request)
+
+    if json {
+      writeJSON(terminal.toJsonDict())
+      return
+    }
+
+    print(terminalSummary(terminal))
+  }
 }

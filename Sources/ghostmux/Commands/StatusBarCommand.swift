@@ -2,9 +2,9 @@ import Foundation
 import GhosttyLib
 
 struct StatusBarCommand: GhostmuxCommand {
-    static let name = "statusbar"
-    static let aliases: [String] = []
-    static let help = """
+  static let name = "statusbar"
+  static let aliases: [String] = []
+  static let help = """
     Usage:
       ghostmux statusbar set -t <target> "left|center|right" [--fg <color>] [--bg <color>]
       ghostmux statusbar set -t <target> --fg <color> --bg <color>
@@ -36,147 +36,149 @@ struct StatusBarCommand: GhostmuxCommand {
       Special:      "default" resets to default color
     """
 
-    static func run(context: CommandContext) throws {
-        var target: String?
-        var positional: [String] = []
-        var json = false
-        var windowScope = false
-        var fgColor: String?
-        var bgColor: String?
+  static func run(context: CommandContext) throws {
+    var target: String?
+    var positional: [String] = []
+    var json = false
+    var windowScope = false
+    var fgColor: String?
+    var bgColor: String?
 
-        var i = 0
-        while i < context.args.count {
-            let arg = context.args[i]
-            if arg == "-t", i + 1 < context.args.count {
-                target = context.args[i + 1]
-                i += 2
-                continue
-            }
+    var i = 0
+    while i < context.args.count {
+      let arg = context.args[i]
+      if arg == "-t", i + 1 < context.args.count {
+        target = context.args[i + 1]
+        i += 2
+        continue
+      }
 
-            if arg == "--window" {
-                windowScope = true
-                i += 1
-                continue
-            }
+      if arg == "--window" {
+        windowScope = true
+        i += 1
+        continue
+      }
 
-            if arg == "--fg", i + 1 < context.args.count {
-                fgColor = context.args[i + 1]
-                i += 2
-                continue
-            }
+      if arg == "--fg", i + 1 < context.args.count {
+        fgColor = context.args[i + 1]
+        i += 2
+        continue
+      }
 
-            if arg == "--bg", i + 1 < context.args.count {
-                bgColor = context.args[i + 1]
-                i += 2
-                continue
-            }
+      if arg == "--bg", i + 1 < context.args.count {
+        bgColor = context.args[i + 1]
+        i += 2
+        continue
+      }
 
-            if arg == "-h" || arg == "--help" {
-                print(help)
-                return
-            }
+      if arg == "-h" || arg == "--help" {
+        print(help)
+        return
+      }
 
-            if arg == "--json" {
-                json = true
-                i += 1
-                continue
-            }
+      if arg == "--json" {
+        json = true
+        i += 1
+        continue
+      }
 
-            positional.append(arg)
-            i += 1
-        }
-
-        guard let subcommand = positional.first else {
-            throw GhosttyError.message("statusbar requires a subcommand: set, show, hide, or toggle")
-        }
-
-        let resolvedTarget: String
-        if let target {
-            resolvedTarget = target
-        } else if let envTarget = resolveEnv("GHOSTTY_SURFACE_UUID") {
-            resolvedTarget = envTarget
-        } else {
-            throw GhosttyError.message("statusbar requires -t <target> or $GHOSTTY_SURFACE_UUID")
-        }
-
-        let terminals = try context.client.listTerminals()
-        guard let targetTerminal = resolveTarget(resolvedTarget, terminals: terminals) else {
-            throw GhosttyError.message("can't find terminal: \(resolvedTarget)")
-        }
-
-        let scope = windowScope ? "window" : nil
-
-        switch subcommand {
-        case "set":
-            let rawValue = positional.dropFirst().joined(separator: " ")
-
-            // Allow set with just colors (no text content)
-            if rawValue.isEmpty && fgColor == nil && bgColor == nil {
-                throw GhosttyError.message("statusbar set requires \"left|center|right\" or --fg/--bg colors")
-            }
-
-            var left: String?
-            var center: String?
-            var right: String?
-
-            if !rawValue.isEmpty {
-                let parts = rawValue.split(separator: "|", omittingEmptySubsequences: false)
-                guard parts.count == 3 else {
-                    throw GhosttyError.message("statusbar set requires exactly three fields: left|center|right")
-                }
-                left = String(parts[0])
-                center = String(parts[1])
-                right = String(parts[2])
-            }
-
-            try context.client.setStatusBar(
-                terminalId: targetTerminal.id,
-                left: left,
-                center: center,
-                right: right,
-                visible: true,
-                scope: scope,
-                fg: fgColor,
-                bg: bgColor
-            )
-        case "get":
-            if positional.count > 1 {
-                throw GhosttyError.message("statusbar get does not take extra arguments")
-            }
-            let info = try context.client.getStatusBar(terminalId: targetTerminal.id, scope: scope)
-            if json {
-                writeJSON(info.toJsonDict())
-            } else {
-                print("left:    \(info.left)")
-                print("center:  \(info.center)")
-                print("right:   \(info.right)")
-                print("visible: \(info.visible)")
-                print("fg:      \(info.fg ?? "default")")
-                print("bg:      \(info.bg ?? "default")")
-                print("scope:   \(info.scope)")
-            }
-            return
-        case "show":
-            if positional.count > 1 {
-                throw GhosttyError.message("statusbar show does not take extra arguments")
-            }
-            try context.client.setStatusBar(terminalId: targetTerminal.id, visible: true, scope: scope)
-        case "hide":
-            if positional.count > 1 {
-                throw GhosttyError.message("statusbar hide does not take extra arguments")
-            }
-            try context.client.setStatusBar(terminalId: targetTerminal.id, visible: false, scope: scope)
-        case "toggle":
-            if positional.count > 1 {
-                throw GhosttyError.message("statusbar toggle does not take extra arguments")
-            }
-            try context.client.setStatusBar(terminalId: targetTerminal.id, toggle: true, scope: scope)
-        default:
-            throw GhosttyError.message("unknown statusbar subcommand: \(subcommand)")
-        }
-
-        if json {
-            writeJSON(["success": true])
-        }
+      positional.append(arg)
+      i += 1
     }
+
+    guard let subcommand = positional.first else {
+      throw GhosttyError.message("statusbar requires a subcommand: set, show, hide, or toggle")
+    }
+
+    let resolvedTarget: String
+    if let target {
+      resolvedTarget = target
+    } else if let envTarget = resolveEnv("GHOSTTY_SURFACE_UUID") {
+      resolvedTarget = envTarget
+    } else {
+      throw GhosttyError.message("statusbar requires -t <target> or $GHOSTTY_SURFACE_UUID")
+    }
+
+    let terminals = try context.client.listTerminals()
+    guard let targetTerminal = resolveTarget(resolvedTarget, terminals: terminals) else {
+      throw GhosttyError.message("can't find terminal: \(resolvedTarget)")
+    }
+
+    let scope = windowScope ? "window" : nil
+
+    switch subcommand {
+    case "set":
+      let rawValue = positional.dropFirst().joined(separator: " ")
+
+      // Allow set with just colors (no text content)
+      if rawValue.isEmpty && fgColor == nil && bgColor == nil {
+        throw GhosttyError.message(
+          "statusbar set requires \"left|center|right\" or --fg/--bg colors")
+      }
+
+      var left: String?
+      var center: String?
+      var right: String?
+
+      if !rawValue.isEmpty {
+        let parts = rawValue.split(separator: "|", omittingEmptySubsequences: false)
+        guard parts.count == 3 else {
+          throw GhosttyError.message(
+            "statusbar set requires exactly three fields: left|center|right")
+        }
+        left = String(parts[0])
+        center = String(parts[1])
+        right = String(parts[2])
+      }
+
+      try context.client.setStatusBar(
+        terminalId: targetTerminal.id,
+        left: left,
+        center: center,
+        right: right,
+        visible: true,
+        scope: scope,
+        fg: fgColor,
+        bg: bgColor
+      )
+    case "get":
+      if positional.count > 1 {
+        throw GhosttyError.message("statusbar get does not take extra arguments")
+      }
+      let info = try context.client.getStatusBar(terminalId: targetTerminal.id, scope: scope)
+      if json {
+        writeJSON(info.toJsonDict())
+      } else {
+        print("left:    \(info.left)")
+        print("center:  \(info.center)")
+        print("right:   \(info.right)")
+        print("visible: \(info.visible)")
+        print("fg:      \(info.fg ?? "default")")
+        print("bg:      \(info.bg ?? "default")")
+        print("scope:   \(info.scope)")
+      }
+      return
+    case "show":
+      if positional.count > 1 {
+        throw GhosttyError.message("statusbar show does not take extra arguments")
+      }
+      try context.client.setStatusBar(terminalId: targetTerminal.id, visible: true, scope: scope)
+    case "hide":
+      if positional.count > 1 {
+        throw GhosttyError.message("statusbar hide does not take extra arguments")
+      }
+      try context.client.setStatusBar(terminalId: targetTerminal.id, visible: false, scope: scope)
+    case "toggle":
+      if positional.count > 1 {
+        throw GhosttyError.message("statusbar toggle does not take extra arguments")
+      }
+      try context.client.setStatusBar(terminalId: targetTerminal.id, toggle: true, scope: scope)
+    default:
+      throw GhosttyError.message("unknown statusbar subcommand: \(subcommand)")
+    }
+
+    if json {
+      writeJSON(["success": true])
+    }
+  }
 }

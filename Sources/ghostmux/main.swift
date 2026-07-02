@@ -27,6 +27,7 @@ private let usage = """
     statusbar             Control the programmable status bar (requires -t)
     metadata              Get/set terminal metadata (requires -t)
     capture-pane, capturep  Capture pane contents (visible only by default)
+    screenshot, shot      Capture a terminal screenshot as PNG (requires target or $GHOSTTY_SURFACE_UUID)
     stream-surface, stream  Stream raw PTY output in real-time (requires -t)
 
   Options:
@@ -53,6 +54,7 @@ private let usage = """
     ghostmux statusbar set -t 1a2b3c4d "left|center|right"
     ghostmux capture-pane -t 550e8400
     ghostmux capturep -t 550e8400 -S 0 -E 5
+    ghostmux screenshot swift-falcon -o /tmp/pane.png
   """
 
 private let commandTypes: [GhostmuxCommand.Type] = [
@@ -74,6 +76,7 @@ private let commandTypes: [GhostmuxCommand.Type] = [
   StatusBarCommand.self,
   MetadataCommand.self,
   CapturePaneCommand.self,
+  ScreenshotCommand.self,
   StreamSurfaceCommand.self,
 ]
 

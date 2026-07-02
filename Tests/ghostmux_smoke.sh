@@ -19,19 +19,26 @@ if [[ ! -S "$SOCK" ]]; then
   exit 0
 fi
 
-surfaces="$("$BIN" list-surfaces)"
-if [[ -z "$surfaces" ]] || [[ "$surfaces" == "(no terminals)" ]]; then
-  echo "SKIP: no terminals"
-  exit 0
-fi
+created="$("$BIN" new --title ghostmux-smoke --command "echo ghostmux_smoke && sleep 20" --json)"
+target="$(printf '%s\n' "$created" | sed -n 's/.*"short_id":"\([^"]*\)".*/\1/p')"
 
-target="$(printf '%s\n' "$surfaces" | sed -n 's/^Created pane: .* (\([^)]*\)).*/\1/p' | head -n 1)"
 if [[ -z "$target" ]]; then
-  echo "SKIP: could not parse target"
-  exit 0
+  echo "FAIL: could not parse created target"
+  exit 1
 fi
 
+cleanup() {
+  "$BIN" kill-surface -t "$target" --force >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+
+sleep 1
 "$BIN" send-keys -t "$target" C-g >/dev/null
 "$BIN" capture-pane -t "$target" >/dev/null
+
+shot="$(mktemp -t ghostmux-screenshot-smoke).png"
+"$BIN" screenshot -t "$target" -o "$shot" >/dev/null
+file "$shot" | grep -q "PNG image data"
+rm -f "$shot"
 
 echo "OK"

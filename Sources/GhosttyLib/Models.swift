@@ -72,6 +72,22 @@ public struct StatusBarInfo {
   }
 }
 
+public struct TerminalScreenshot {
+  public let id: String
+  public let mimeType: String
+  public let width: Int
+  public let height: Int
+  public let data: Data
+
+  public init(id: String, mimeType: String, width: Int, height: Int, data: Data) {
+    self.id = id
+    self.mimeType = mimeType
+    self.width = width
+    self.height = height
+    self.data = data
+  }
+}
+
 public struct CreateTerminalRequest {
   public var location: String?
   public var workingDirectory: String?

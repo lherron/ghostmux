@@ -76,6 +76,11 @@ ghostmux capture-pane <target> --visible  # Visible area only
 ghostmux capture-pane <target> -S -10     # Last 10 lines
 ghostmux capture-pane <target> -S 0 -E 50 # Lines 0-50
 
+# Capture terminal screenshot
+ghostmux screenshot <target>              # Writes PNG under /tmp/ghostmux-screenshots
+ghostmux screenshot <target> -o pane.png  # Writes PNG to a specific path
+ghostmux screenshot <target> --json       # Writes PNG and prints metadata
+
 # Stream terminal output (real-time)
 ghostmux stream-surface <target>
 ghostmux stream-surface <target> --raw    # Raw bytes
@@ -89,8 +94,12 @@ ghostmux kill-surface <target> --force
 The `<target>` can be:
 - Full UUID: `550e8400-e29b-41d4-a716-446655440000`
 - UUID prefix: `550e84`
+- Friendly name/slug from `list-surfaces --json`: `swift-falcon`
 - Title match: `"My Terminal"`
 - Omitted: Uses `$GHOSTTY_SURFACE_UUID` environment variable
+
+`ghostmux screenshot` intentionally accepts UUIDs, UUID prefixes, and friendly
+names/slugs. It does not fall back to title substring matching.
 
 ### JSON Output
 

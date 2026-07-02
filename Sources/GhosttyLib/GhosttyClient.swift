@@ -321,6 +321,30 @@ public final class GhosttyClient {
     return response.body?["value"] as? String
   }
 
+  public func getScreenshot(terminalId: String) throws -> TerminalScreenshot {
+    let response = try request(
+      version: "v2", method: "GET", path: "/terminals/\(terminalId)/screenshot")
+    guard response.status == 200 else {
+      throw GhosttyError.apiError(response.status, response.bodyError)
+    }
+    guard let body = response.body else {
+      throw GhosttyError.message("invalid screenshot response")
+    }
+    guard let encoded = body["data"] as? String,
+      let data = Data(base64Encoded: encoded)
+    else {
+      throw GhosttyError.message("invalid screenshot data")
+    }
+
+    return TerminalScreenshot(
+      id: body["id"] as? String ?? terminalId,
+      mimeType: body["mime_type"] as? String ?? "image/png",
+      width: body["width"] as? Int ?? 0,
+      height: body["height"] as? Int ?? 0,
+      data: data
+    )
+  }
+
   public func getTerminal(terminalId: String) throws -> Terminal {
     let response = try request(version: "v2", method: "GET", path: "/terminals/\(terminalId)")
     guard response.status == 200 else {

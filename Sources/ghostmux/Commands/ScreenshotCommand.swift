@@ -69,7 +69,9 @@ struct ScreenshotCommand: GhostmuxCommand {
     } else if let envTarget = resolveEnv("GHOSTTY_SURFACE_UUID") {
       resolvedTarget = envTarget
     } else {
-      throw GhosttyError.message("screenshot requires <uuid|slug>, -t <target>, or $GHOSTTY_SURFACE_UUID")
+      throw GhosttyError.message(
+        "screenshot requires <uuid|slug>, -t <target>, or $GHOSTTY_SURFACE_UUID"
+      )
     }
 
     if json && outputPath == "-" {
@@ -114,7 +116,10 @@ struct ScreenshotCommand: GhostmuxCommand {
     target = value
   }
 
-  private static func resolveScreenshotTarget(_ target: String, terminals: [Terminal]) throws -> Terminal {
+  private static func resolveScreenshotTarget(
+    _ target: String,
+    terminals: [Terminal]
+  ) throws -> Terminal {
     let lowerTarget = target.lowercased()
 
     if let exactId = terminals.first(where: { $0.id.lowercased() == lowerTarget }) {
@@ -128,7 +133,9 @@ struct ScreenshotCommand: GhostmuxCommand {
       return slugMatches[0]
     }
     if slugMatches.count > 1 {
-      throw GhosttyError.message("ambiguous terminal slug '\(target)': \(formatMatches(slugMatches))")
+      throw GhosttyError.message(
+        "ambiguous terminal slug '\(target)': \(formatMatches(slugMatches))"
+      )
     }
 
     let shortMatches = terminals.filter {
@@ -138,7 +145,9 @@ struct ScreenshotCommand: GhostmuxCommand {
       return shortMatches[0]
     }
     if shortMatches.count > 1 {
-      throw GhosttyError.message("ambiguous terminal short id '\(target)': \(formatMatches(shortMatches))")
+      throw GhosttyError.message(
+        "ambiguous terminal short id '\(target)': \(formatMatches(shortMatches))"
+      )
     }
 
     let prefixMatches = terminals.filter { $0.id.lowercased().hasPrefix(lowerTarget) }
@@ -146,10 +155,14 @@ struct ScreenshotCommand: GhostmuxCommand {
       return prefixMatches[0]
     }
     if prefixMatches.count > 1 {
-      throw GhosttyError.message("ambiguous terminal UUID prefix '\(target)': \(formatMatches(prefixMatches))")
+      throw GhosttyError.message(
+        "ambiguous terminal UUID prefix '\(target)': \(formatMatches(prefixMatches))"
+      )
     }
 
-    throw GhosttyError.message("can't find terminal: \(target) (expected UUID or slug from list-surfaces)")
+    throw GhosttyError.message(
+      "can't find terminal: \(target) (expected UUID or slug from list-surfaces)"
+    )
   }
 
   private static func formatMatches(_ terminals: [Terminal]) -> String {

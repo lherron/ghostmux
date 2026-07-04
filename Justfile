@@ -10,6 +10,14 @@ default:
 build:
     swift build
 
+# Check Swift formatting without rewriting files
+lint:
+    xcrun swift-format lint --strict --recursive Sources/
+
+# Run the full local quality gate
+verify: build lint test
+    @echo "ghostmux verify OK"
+
 # Build with Swift Package Manager (release)
 build-release:
     swift build -c release

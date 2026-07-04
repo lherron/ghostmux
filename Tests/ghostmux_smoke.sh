@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BIN="${GHOSTMUX_BIN:-$ROOT/.build/debug/ghostmux}"
+ALLOW_SKIP="${GHOSTMUX_SMOKE_ALLOW_SKIP:-0}"
 
 if [[ ! -x "$BIN" ]]; then
   echo "ghostmux binary not found at $BIN"
@@ -15,8 +16,14 @@ if [[ ! -S "$SOCK" ]]; then
 fi
 
 if [[ ! -S "$SOCK" ]]; then
-  echo "SKIP: Ghostty socket not found at $SOCK"
-  exit 0
+  if [[ "$ALLOW_SKIP" == "1" || "$ALLOW_SKIP" == "true" ]]; then
+    echo "SKIP: Ghostty socket not found at $SOCK (GHOSTMUX_SMOKE_ALLOW_SKIP=$ALLOW_SKIP)"
+    exit 0
+  fi
+
+  echo "FAIL: Ghostty socket not found at $SOCK"
+  echo "FAIL: start ScriptableGhostty or set GHOSTTY_API_SOCKET; set GHOSTMUX_SMOKE_ALLOW_SKIP=1 only when an explicit skip is acceptable outside just verify"
+  exit 1
 fi
 
 created="$("$BIN" new --title ghostmux-smoke --command "echo ghostmux_smoke && sleep 20" --json)"

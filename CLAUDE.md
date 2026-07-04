@@ -7,11 +7,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 just build           # Debug build
 just build-release   # Release build
+just lint            # Check Swift formatting without rewriting files
+just verify          # Full local gate: build, lint, and non-skipping smoke test
 just install         # Build release and install to ~/.local/bin
 just test            # Run smoke tests (requires running ScriptableGhostty)
 just format          # Format Swift code with swift-format
 just clean           # Clean build artifacts
 ```
+
+`just verify` is the required closing check before reporting ghostmux code
+changes complete. Runtime-dependent smoke checks fail closed when
+ScriptableGhostty is unavailable; use `GHOSTMUX_SMOKE_ALLOW_SKIP=1 just test`
+only when you intentionally want explicit skip evidence outside the verify
+gate.
 
 ## Architecture
 

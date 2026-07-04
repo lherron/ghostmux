@@ -4,6 +4,7 @@ set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BIN="${GHOSTMUX_BIN:-$ROOT/.build/debug/ghostmux}"
 README="${GHOSTMUX_README:-$ROOT/README.md}"
+AGENTS="${GHOSTMUX_AGENTS:-$ROOT/AGENTS.md}"
 COMMAND_DIR="$ROOT/Sources/ghostmux/Commands"
 
 tmpdir="$(mktemp -d)"
@@ -37,6 +38,11 @@ if [[ ! -f "$README" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$AGENTS" ]]; then
+  fail "AGENTS router not found at $AGENTS"
+  exit 1
+fi
+
 if ! "$BIN" __command-surface >"$tmpdir/live.tsv" 2>"$tmpdir/live.err"; then
   fail "failed to read live command registry from $BIN"
   sed 's/^/command-surface: live-registry stderr: /' "$tmpdir/live.err" >&2
@@ -44,6 +50,16 @@ if ! "$BIN" __command-surface >"$tmpdir/live.tsv" 2>"$tmpdir/live.err"; then
 fi
 
 sort "$tmpdir/live.tsv" >"$tmpdir/live.sorted.tsv"
+
+awk -F '\t' '
+  {
+    print $1
+    if ($2 != "") {
+      n = split($2, aliases, ",")
+      for (i = 1; i <= n; i++) print aliases[i]
+    }
+  }
+' "$tmpdir/live.tsv" | sort -u >"$tmpdir/valid-command-tokens.txt"
 
 perl -0ne '
   my ($name) = /static\s+let\s+name\s*=\s*"([^"]+)"/ or next;
@@ -109,6 +125,31 @@ while IFS=$'\t' read -r name aliases; do
     fail "README does not reference canonical command 'ghostmux $name'"
   fi
 done <"$tmpdir/live.tsv"
+
+perl -ne '
+  if (/^\s*```/) {
+    $in_fence = !$in_fence;
+    next;
+  }
+  while (/`([^`]*)`/g) {
+    my $span = $1;
+    while ($span =~ /(?:^|[[:space:]\/])ghostmux\s+([a-z0-9-]+)/g) {
+      print "$1\n";
+    }
+  }
+  if ($in_fence && /^\s*(?:\$[[:space:]]*)?(?:.*\/)?ghostmux\s+([a-z0-9-]+)/) {
+    print "$1\n";
+  }
+' "$README" "$AGENTS" | sort -u >"$tmpdir/referenced-command-tokens.txt"
+
+if ! comm -23 "$tmpdir/referenced-command-tokens.txt" "$tmpdir/valid-command-tokens.txt" >"$tmpdir/unknown-command-tokens.txt"; then
+  fail "failed to compare referenced command tokens"
+fi
+
+if [[ -s "$tmpdir/unknown-command-tokens.txt" ]]; then
+  fail "docs reference unknown ghostmux command token(s)"
+  sed 's/^/command-surface: unknown-token: /' "$tmpdir/unknown-command-tokens.txt" >&2
+fi
 
 if [[ "$failures" -ne 0 ]]; then
   exit 1

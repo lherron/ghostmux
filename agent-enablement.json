@@ -41,8 +41,8 @@
         "assessment": "agent-enablement/assessments/ghostmux/assessment.json",
         "deltas": "agent-enablement/assessments/ghostmux/deltas.json",
         "profileHash": "0394798d0322595b0b01112db9101f21578d2b52723b758b44ab5115412ce675",
-        "assessmentHash": "67fdba69836f426fb7e7fce400f2602e935ea80daa27ec4f07a7a96253c89905",
-        "deltasHash": "eb01c95b147c26c5e457dbb7f8cd72add0e8e16311b49dedf3c2c3d7849d30e0"
+        "assessmentHash": "2e9cd674494ea140253d9c4632bef3da7ff6d47fe1d2d37a6e13128425d5b27e",
+        "deltasHash": "8a3696d8a18eb0601b6a310a49415b4fead01d46f17ccebd33409c0384848444"
       },
       "decidedAt": "2026-07-03",
       "assessedAt": "2026-07-03",
@@ -53,15 +53,7 @@
         "recommended": 4,
         "frontier": 1
       },
-      "openDeltaIds": [
-        "delta:add-agents-router",
-        "delta:add-command-surface-conformance",
-        "delta:add-enable-retro-carrier",
-        "delta:add-suppression-cost",
-        "delta:add-verify-command",
-        "delta:make-smoke-skip-explicit",
-        "delta:wire-verify-hook"
-      ],
+      "openDeltaIds": [],
       "failingOpenAxes": [
         "F0",
         "P0",

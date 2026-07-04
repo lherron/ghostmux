@@ -13,7 +13,7 @@ PM floor: not swept (etag 0)
 Required: 12
 Frontier: 1
 Deferred: 0
-Open deltas: delta:add-agents-router, delta:add-command-surface-conformance, delta:add-enable-retro-carrier, delta:add-suppression-cost, delta:add-verify-command, delta:make-smoke-skip-explicit, delta:wire-verify-hook
+Open deltas: none
 Failing/open axes: F0, P0, S1, S2, S3, S3.affordanceGating, S4, S5, S6, S7, S8, TA, TB, TC, TD, TD.selfDescribingSurfaceConformance, TE, TE.claimScopedEvidenceRouting, TF
 
 ## PM Floor Axes

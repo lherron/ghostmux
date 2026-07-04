@@ -16,9 +16,12 @@ context, then defer to the referenced source files for command details.
   `just verify`.
 - `docs/SUPPRESSION_GUARD.md` defines the reviewed exception format and the
   suppression-cost guard enforced by `just check-suppressions`.
-- Current agent-enablement baseline: `af7f993..ec731dd` added `just verify`,
-  repo-local hooks, command-surface conformance, and explicit smoke skip
-  evidence.
+- `AGENT_ENABLEMENT_STATUS.md` is the generated AE assessment/status projection.
+- `AGENT_ENABLEMENT_RETRO.md` is the hand-maintained retro carrier for
+  post-assessment enablement lessons and routing decisions.
+- Current agent-enablement remediation baseline: `af7f993..9c0ffab` added
+  `just verify`, repo-local hooks, command-surface conformance, explicit smoke
+  skip evidence, this router, and suppression-cost guard coverage.
 
 ## Command Surface
 

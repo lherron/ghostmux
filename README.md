@@ -132,6 +132,10 @@ ghostmux new --json
 
 - `GHOSTTY_API_SOCKET` - Custom socket path (default: `~/Library/Application Support/Ghostty/api.sock`)
 - `GHOSTTY_SURFACE_UUID` - Default target terminal UUID
+- `GHOSTMUX_SMOKE_ALLOW_SKIP` - Set to `1` only for `just test` runs where
+  missing ScriptableGhostty should emit explicit skip evidence instead of
+  failing. `just verify` disables this escape hatch and requires a real runtime
+  smoke pass.
 
 ## Building ScriptableGhostty
 

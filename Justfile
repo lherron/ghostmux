@@ -15,7 +15,8 @@ lint:
     xcrun swift-format lint --strict --recursive Sources/
 
 # Run the full local quality gate
-verify: build lint command-surface test
+verify: build lint command-surface
+    @env GHOSTMUX_SMOKE_ALLOW_SKIP=0 bash Tests/ghostmux_smoke.sh
     @echo "ghostmux verify OK"
 
 # Check documented command surface against the real CLI registry

@@ -20,7 +20,11 @@ just clean           # Clean build artifacts
 changes complete. Runtime-dependent smoke checks fail closed when
 ScriptableGhostty is unavailable; use `GHOSTMUX_SMOKE_ALLOW_SKIP=1 just test`
 only when you intentionally want explicit skip evidence outside the verify
-gate.
+gate. Interpret `GHOSTMUX_SMOKE_RESULT=passed` as real terminal behavior
+covered, `GHOSTMUX_SMOKE_RESULT=failed` as a failed required runtime check, and
+`GHOSTMUX_SMOKE_RESULT=skipped` plus `GHOSTMUX_SMOKE_SKIP_EVIDENCE=...` as an
+explicit non-passing skip. `just verify` forces `GHOSTMUX_SMOKE_ALLOW_SKIP=0`,
+so a skip is never acceptable closeout evidence for ghostmux changes.
 
 `just install` also runs `just install-hooks`, which configures this clone to
 use the committed `.githooks/` directory. The pre-commit and pre-push hooks

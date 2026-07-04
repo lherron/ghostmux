@@ -14,6 +14,8 @@ context, then defer to the referenced source files for command details.
   rejects stale `ghostmux <command>` references in this router.
 - `Tests/ghostmux_smoke.sh` is the runtime smoke used by `just test` and
   `just verify`.
+- `docs/SUPPRESSION_GUARD.md` defines the reviewed exception format and the
+  suppression-cost guard enforced by `just check-suppressions`.
 - Current agent-enablement baseline: `af7f993..ec731dd` added `just verify`,
   repo-local hooks, command-surface conformance, and explicit smoke skip
   evidence.
@@ -23,6 +25,7 @@ context, then defer to the referenced source files for command details.
 - Build/typecheck: `just build`
 - Swift formatting lint: `just lint`
 - Command-surface guard: `just command-surface`
+- Suppression-cost guard: `just check-suppressions`
 - Full closeout gate: `just verify`
 - Materialize repo hooks: `just install-hooks`
 - Install real binaries: `just install`

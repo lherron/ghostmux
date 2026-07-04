@@ -14,8 +14,12 @@ build:
 lint:
     xcrun swift-format lint --strict --recursive Sources/
 
+# Validate reviewed suppression/bypass inventory
+check-suppressions:
+    @bash Tests/suppression_guard.sh
+
 # Run the full local quality gate
-verify: build lint command-surface
+verify: build lint command-surface check-suppressions
     @env GHOSTMUX_SMOKE_ALLOW_SKIP=0 bash Tests/ghostmux_smoke.sh
     @echo "ghostmux verify OK"
 

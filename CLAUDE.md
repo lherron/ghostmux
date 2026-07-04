@@ -8,6 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 just build           # Debug build
 just build-release   # Release build
 just lint            # Check Swift formatting without rewriting files
+just check-suppressions # Check reviewed guard suppression inventory
 just verify          # Full local gate: build, lint, and non-skipping smoke test
 just install-hooks   # Materialize pre-commit/pre-push hooks that run just verify
 just install         # Build release and install to ~/.local/bin

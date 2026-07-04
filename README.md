@@ -47,6 +47,13 @@ ghostmux new --cwd /path/to/dir           # With working directory
 ghostmux new --command "vim file.txt"     # Run command
 ghostmux new --title "My Terminal"        # With title
 
+# Create and arrange panes
+ghostmux new-pane -d right                # Split from focused pane
+ghostmux panes-grid 3x2                   # Create a 3x2 grid
+ghostmux get-pane-size -t <target>        # Get pane dimensions
+ghostmux resize-pane -t <target> -d right -a 100
+ghostmux equalize-panes -t <target>
+
 # Send text to terminal (appends Enter by default)
 ghostmux send-keys <target> "echo hello"
 ghostmux send-keys <target> "ls -la" --no-enter
@@ -64,11 +71,22 @@ ghostmux set-title <target> "New Title"
 ghostmux set-bg <target> --color "#1a1b26"
 ghostmux set-bg <target> --rgb 26,27,38
 
+# Raise a terminal window
+ghostmux focus -t <target>
+
+# Attach host session metadata
+ghostmux attach-host-session -t <target> animata-host://workspace/animata:center
+
 # Control status bar
 ghostmux statusbar <target> --left "Status"
 ghostmux statusbar <target> --center "Center" --right "Right"
 ghostmux statusbar <target> --hide
 ghostmux statusbar <target> --show
+
+# Manage metadata
+ghostmux metadata get -t <target>
+ghostmux metadata set -t <target> '{"key":"value"}'
+ghostmux metadata delete -t <target>
 
 # Capture terminal content
 ghostmux capture-pane <target>            # Full scrollback

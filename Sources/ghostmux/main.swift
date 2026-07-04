@@ -9,17 +9,17 @@ private let usage = """
     ghostmux <command> [options]
 
   Commands:
-    list-surfaces         List all terminals
+    list-surfaces, list-sessions, ls  List all terminals
     status                Check Ghostty API availability
-    new                   Create a new terminal window or tab
-    new-pane              Create a new pane by splitting (requires -t or $GHOSTTY_SURFACE_UUID)
-    panes-grid            Create a grid of panes (e.g., 3x2 for 6 panes)
-    get-pane-size         Get pane dimensions (requires -t or $GHOSTTY_SURFACE_UUID)
-    resize-pane           Resize a pane (requires -t and -d)
-    equalize-panes        Make all panes equal size (requires -t or $GHOSTTY_SURFACE_UUID)
-    kill-surface          Close a terminal (requires -t)
+    new, new-surface      Create a new terminal window or tab
+    new-pane, splitp, split-pane  Create a new pane by splitting (requires -t or $GHOSTTY_SURFACE_UUID)
+    panes-grid, grid      Create a grid of panes (e.g., 3x2 for 6 panes)
+    get-pane-size, pane-size, size  Get pane dimensions (requires -t or $GHOSTTY_SURFACE_UUID)
+    resize-pane, resizep  Resize a pane (requires -t and -d)
+    equalize-panes, equalize, eq  Make all panes equal size (requires -t or $GHOSTTY_SURFACE_UUID)
+    kill-surface, close-surface, delete-surface  Close a terminal (requires -t)
     focus                 Raise a terminal's window to the foreground (requires -t)
-    set-bg                Set terminal background color (requires -t)
+    set-bg, set-background, bg  Set terminal background color (requires -t)
     send-keys             Send keys + Enter to a terminal (requires -t)
     send-key              Send a key without Enter (requires -t)
     attach-host-session   Bind a surface to an Animata host session (requires -t)
@@ -84,6 +84,12 @@ func printUsage() {
   print(usage)
 }
 
+func printCommandSurface() {
+  for command in commandTypes {
+    print("\(command.name)\t\(command.aliases.joined(separator: ","))")
+  }
+}
+
 func resolveCommand(_ name: String) -> GhostmuxCommand.Type? {
   for command in commandTypes {
     if command.name == name || command.aliases.contains(name) {
@@ -102,6 +108,11 @@ func main() {
 
   if args[0] == "-h" || args[0] == "--help" {
     printUsage()
+    return
+  }
+
+  if args[0] == "__command-surface" {
+    printCommandSurface()
     return
   }
 

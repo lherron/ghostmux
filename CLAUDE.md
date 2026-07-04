@@ -9,6 +9,7 @@ just build           # Debug build
 just build-release   # Release build
 just lint            # Check Swift formatting without rewriting files
 just verify          # Full local gate: build, lint, and non-skipping smoke test
+just install-hooks   # Materialize pre-commit/pre-push hooks that run just verify
 just install         # Build release and install to ~/.local/bin
 just test            # Run smoke tests (requires running ScriptableGhostty)
 just format          # Format Swift code with swift-format
@@ -20,6 +21,10 @@ changes complete. Runtime-dependent smoke checks fail closed when
 ScriptableGhostty is unavailable; use `GHOSTMUX_SMOKE_ALLOW_SKIP=1 just test`
 only when you intentionally want explicit skip evidence outside the verify
 gate.
+
+`just install` also runs `just install-hooks`, which configures this clone to
+use the committed `.githooks/` directory. The pre-commit and pre-push hooks
+fail loud by running `just verify` directly.
 
 ## Architecture
 

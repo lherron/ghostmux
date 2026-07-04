@@ -18,6 +18,12 @@ lint:
 verify: build lint test
     @echo "ghostmux verify OK"
 
+# Install repo-local Git hooks for this clone
+install-hooks:
+    @git config --local core.hooksPath .githooks
+    @chmod +x .githooks/pre-commit .githooks/pre-push
+    @echo "Installed ghostmux Git hooks: pre-commit/pre-push run just verify"
+
 # Build with Swift Package Manager (release)
 build-release:
     swift build -c release
@@ -26,8 +32,8 @@ build-release:
 test: build
     @bash Tests/ghostmux_smoke.sh
 
-# Install to ~/.local/bin
-install: build-release
+# Install to ~/.local/bin and materialize repo-local Git hooks
+install: build-release install-hooks
     @mkdir -p ~/.local/bin
     cp .build/release/ghostmux ~/.local/bin/ghostmux
     cp .build/release/ghostchat ~/.local/bin/ghostchat

@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+set -eu
+
+repo_root=$(git rev-parse --show-toplevel)
+cd "$repo_root"
+
+echo "ghostmux pre-push: running just verify" >&2
+exec just verify

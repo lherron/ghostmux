@@ -35,25 +35,19 @@ public func resolveEnv(_ name: String) -> String? {
 }
 
 public func resolveTarget(_ target: String, terminals: [Terminal]) -> Terminal? {
-  let lowerTarget = target.lowercased()
-
-  if let exactId = terminals.first(where: { $0.id == target }) {
-    return exactId
+  do {
+    return try SurfaceResolver(terminals: terminals).resolve(
+      .argument(target),
+      policy: SurfaceResolutionPolicy(
+        allowedModes: [.exactUUID, .title, .uuidPrefix],
+        fallbackModes: []
+      )
+    )
+  } catch is SurfaceResolutionError {
+    return nil
+  } catch {
+    return nil
   }
-
-  if let exactTitle = terminals.first(where: { $0.title.lowercased() == lowerTarget }) {
-    return exactTitle
-  }
-
-  if let partial = terminals.first(where: { $0.title.lowercased().contains(lowerTarget) }) {
-    return partial
-  }
-
-  if let prefix = terminals.first(where: { $0.id.hasPrefix(target) }) {
-    return prefix
-  }
-
-  return nil
 }
 
 public func defaultSocketPath() -> String {

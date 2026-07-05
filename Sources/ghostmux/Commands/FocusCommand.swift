@@ -44,19 +44,9 @@ struct FocusCommand: GhostmuxCommand {
       throw GhosttyError.message("unexpected argument: \(arg)")
     }
 
-    let resolvedTarget: String
-    if let target {
-      resolvedTarget = target
-    } else if let envTarget = resolveEnv("GHOSTTY_SURFACE_UUID") {
-      resolvedTarget = envTarget
-    } else {
-      throw GhosttyError.message("focus requires -t <target> or $GHOSTTY_SURFACE_UUID")
-    }
-
     let terminals = try context.client.listTerminals()
-    guard let targetTerminal = resolveTarget(resolvedTarget, terminals: terminals) else {
-      throw GhosttyError.message("can't find terminal: \(resolvedTarget)")
-    }
+    let policy: SurfaceResolutionPolicy = .regularTarget
+    let targetTerminal = try resolveSurfaceTarget(target, terminals: terminals, policy: policy)
 
     try context.client.focusTerminal(terminalId: targetTerminal.id)
     if json {

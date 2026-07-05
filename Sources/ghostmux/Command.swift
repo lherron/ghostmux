@@ -33,3 +33,18 @@ func terminalSummary(_ terminal: Terminal) -> String {
 
   return output
 }
+
+func resolveSurfaceTarget(
+  _ target: String?,
+  terminals: [Terminal],
+  policy: SurfaceResolutionPolicy
+) throws -> Terminal {
+  do {
+    return try SurfaceResolver(terminals: terminals).resolve(
+      target.map(SurfaceSelector.argument) ?? .none,
+      policy: policy
+    )
+  } catch let error as SurfaceResolutionError {
+    throw GhosttyError.message(SurfaceResolutionError.format(error))
+  }
+}

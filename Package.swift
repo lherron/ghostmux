@@ -22,6 +22,11 @@ let package = Package(
             name: "ghostchat",
             dependencies: ["GhosttyLib"],
             path: "Sources/ghostchat"
+        ),
+        .testTarget(
+            name: "GhosttyLibTests",
+            dependencies: ["GhosttyLib"],
+            path: "Tests/GhosttyLibTests"
         )
     ]
 )

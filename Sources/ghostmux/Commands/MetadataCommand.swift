@@ -82,19 +82,9 @@ struct MetadataCommand: GhostmuxCommand {
       throw GhosttyError.message("metadata requires a subcommand: get, set, delete")
     }
 
-    let resolvedTarget: String
-    if let target {
-      resolvedTarget = target
-    } else if let envTarget = resolveEnv("GHOSTTY_SURFACE_UUID") {
-      resolvedTarget = envTarget
-    } else {
-      throw GhosttyError.message("metadata requires -t <target> or $GHOSTTY_SURFACE_UUID")
-    }
-
     let terminals = try context.client.listTerminals()
-    guard let targetTerminal = resolveTarget(resolvedTarget, terminals: terminals) else {
-      throw GhosttyError.message("can't find terminal: \(resolvedTarget)")
-    }
+    let policy: SurfaceResolutionPolicy = .regularTarget
+    let targetTerminal = try resolveSurfaceTarget(target, terminals: terminals, policy: policy)
 
     let scope = windowScope ? "window" : nil
     let extraArgs = Array(positional.dropFirst())

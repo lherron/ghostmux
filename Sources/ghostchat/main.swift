@@ -301,22 +301,12 @@ func sendMessage(target: String, messageParts: [String]) throws {
   let client = GhosttyClient(socketPath: defaultSocketPath())
   let terminals = try client.listTerminals()
 
-  // Try to resolve target by friendly name first
-  let resolvedTerminal: Terminal?
-  let lowerTarget = target.lowercased()
-
-  // Check friendly name match
-  if let byName = terminals.first(where: {
-    NameGenerator.nameFromUUID($0.id).lowercased() == lowerTarget
-  }) {
-    resolvedTerminal = byName
-  } else {
-    // Fall back to standard resolution (UUID, title, prefix)
-    resolvedTerminal = resolveTarget(target, terminals: terminals)
-  }
-
-  guard let terminal = resolvedTerminal else {
-    throw GhosttyError.message("cannot find terminal: \(target)")
+  let policy: SurfaceResolutionPolicy = .ghostchatSend
+  let terminal: Terminal
+  do {
+    terminal = try SurfaceResolver(terminals: terminals).resolve(.argument(target), policy: policy)
+  } catch let error as SurfaceResolutionError {
+    throw GhosttyError.message(SurfaceResolutionError.format(error))
   }
 
   if terminal.id == myUUID {

@@ -91,24 +91,9 @@ struct PanesGridCommand: GhostmuxCommand {
       throw GhosttyError.message("grid too large: maximum 10x10")
     }
 
-    // Resolve starting terminal
-    let startingId: String
-    if let target {
-      let terminals = try context.client.listTerminals()
-      guard let targetTerminal = resolveTarget(target, terminals: terminals) else {
-        throw GhosttyError.message("can't find terminal: \(target)")
-      }
-      startingId = targetTerminal.id
-    } else if let envTarget = resolveEnv("GHOSTTY_SURFACE_UUID") {
-      startingId = envTarget
-    } else {
-      // Use focused terminal
-      let terminals = try context.client.listTerminals()
-      guard let focused = terminals.first(where: { $0.focused }) else {
-        throw GhosttyError.message("no focused terminal found")
-      }
-      startingId = focused.id
-    }
+    let terminals = try context.client.listTerminals()
+    let policy: SurfaceResolutionPolicy = .focusedTarget
+    let startingId = try resolveSurfaceTarget(target, terminals: terminals, policy: policy).id
 
     // Build the grid
     // Strategy: Create rows first (vertical splits), then columns in each row (horizontal splits)

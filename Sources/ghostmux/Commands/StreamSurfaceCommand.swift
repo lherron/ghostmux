@@ -45,20 +45,9 @@ struct StreamSurfaceCommand: GhostmuxCommand {
       throw GhosttyError.message("unexpected argument: \(arg)")
     }
 
-    // Resolve target
-    let resolvedTarget: String
-    if let target {
-      resolvedTarget = target
-    } else if let envTarget = resolveEnv("GHOSTTY_SURFACE_UUID") {
-      resolvedTarget = envTarget
-    } else {
-      throw GhosttyError.message("stream-surface requires -t <target> or $GHOSTTY_SURFACE_UUID")
-    }
-
     let terminals = try context.client.listTerminals()
-    guard let terminal = resolveTarget(resolvedTarget, terminals: terminals) else {
-      throw GhosttyError.message("can't find terminal: \(resolvedTarget)")
-    }
+    let policy: SurfaceResolutionPolicy = .regularTarget
+    let terminal = try resolveSurfaceTarget(target, terminals: terminals, policy: policy)
 
     // Stream output
     try streamOutput(terminalId: terminal.id, raw: raw, client: context.client)

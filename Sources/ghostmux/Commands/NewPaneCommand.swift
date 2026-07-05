@@ -103,26 +103,9 @@ struct NewPaneCommand: GhostmuxCommand {
         "invalid direction '\(direction)': must be left, right, up, or down")
     }
 
-    // Resolve target
-    let resolvedTarget: String
-    if let target {
-      resolvedTarget = target
-    } else if let envTarget = resolveEnv("GHOSTTY_SURFACE_UUID") {
-      resolvedTarget = envTarget
-    } else {
-      // No target specified - API will use focused terminal
-      resolvedTarget = ""
-    }
-
-    // Find parent terminal if target specified
-    var parentId: String?
-    if !resolvedTarget.isEmpty {
-      let terminals = try context.client.listTerminals()
-      guard let targetTerminal = resolveTarget(resolvedTarget, terminals: terminals) else {
-        throw GhosttyError.message("can't find terminal: \(resolvedTarget)")
-      }
-      parentId = targetTerminal.id
-    }
+    let terminals = try context.client.listTerminals()
+    let policy: SurfaceResolutionPolicy = .focusedTarget
+    let parentId = try resolveSurfaceTarget(target, terminals: terminals, policy: policy).id
 
     // Create the split
     let location = "split:\(direction)"

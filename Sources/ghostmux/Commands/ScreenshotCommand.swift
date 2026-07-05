@@ -63,23 +63,21 @@ struct ScreenshotCommand: GhostmuxCommand {
       i += 1
     }
 
-    let resolvedTarget: String
-    if let target {
-      resolvedTarget = target
-    } else if let envTarget = resolveEnv("GHOSTTY_SURFACE_UUID") {
-      resolvedTarget = envTarget
-    } else {
-      throw GhosttyError.message(
-        "screenshot requires <uuid|slug>, -t <target>, or $GHOSTTY_SURFACE_UUID"
-      )
-    }
-
     if json && outputPath == "-" {
       throw GhosttyError.message("screenshot --json is not compatible with -o -")
     }
 
     let terminals = try context.client.listTerminals()
-    let targetTerminal = try resolveScreenshotTarget(resolvedTarget, terminals: terminals)
+    let policy: SurfaceResolutionPolicy = .screenshotTarget
+    let targetTerminal: Terminal
+    do {
+      targetTerminal = try SurfaceResolver(terminals: terminals).resolve(
+        target.map(SurfaceSelector.argument) ?? .none,
+        policy: policy
+      )
+    } catch let error as SurfaceResolutionError {
+      throw GhosttyError.message(SurfaceResolutionError.format(error))
+    }
     let screenshot = try context.client.getScreenshot(terminalId: targetTerminal.id)
 
     let path: String?
@@ -114,59 +112,6 @@ struct ScreenshotCommand: GhostmuxCommand {
       throw GhosttyError.message("screenshot accepts only one target")
     }
     target = value
-  }
-
-  private static func resolveScreenshotTarget(
-    _ target: String,
-    terminals: [Terminal]
-  ) throws -> Terminal {
-    let lowerTarget = target.lowercased()
-
-    if let exactId = terminals.first(where: { $0.id.lowercased() == lowerTarget }) {
-      return exactId
-    }
-
-    let slugMatches = terminals.filter {
-      NameGenerator.nameFromUUID($0.id).lowercased() == lowerTarget
-    }
-    if slugMatches.count == 1 {
-      return slugMatches[0]
-    }
-    if slugMatches.count > 1 {
-      throw GhosttyError.message(
-        "ambiguous terminal slug '\(target)': \(formatMatches(slugMatches))"
-      )
-    }
-
-    let shortMatches = terminals.filter {
-      NameGenerator.shortUUID($0.id).lowercased() == lowerTarget
-    }
-    if shortMatches.count == 1 {
-      return shortMatches[0]
-    }
-    if shortMatches.count > 1 {
-      throw GhosttyError.message(
-        "ambiguous terminal short id '\(target)': \(formatMatches(shortMatches))"
-      )
-    }
-
-    let prefixMatches = terminals.filter { $0.id.lowercased().hasPrefix(lowerTarget) }
-    if prefixMatches.count == 1 {
-      return prefixMatches[0]
-    }
-    if prefixMatches.count > 1 {
-      throw GhosttyError.message(
-        "ambiguous terminal UUID prefix '\(target)': \(formatMatches(prefixMatches))"
-      )
-    }
-
-    throw GhosttyError.message(
-      "can't find terminal: \(target) (expected UUID or slug from list-surfaces)"
-    )
-  }
-
-  private static func formatMatches(_ terminals: [Terminal]) -> String {
-    terminals.map { "\(NameGenerator.nameFromUUID($0.id))=\($0.id)" }.joined(separator: ", ")
   }
 
   private static func defaultOutputPath(for terminal: Terminal) -> String {

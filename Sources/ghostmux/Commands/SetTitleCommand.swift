@@ -44,15 +44,6 @@ struct SetTitleCommand: GhostmuxCommand {
       i += 1
     }
 
-    let resolvedTarget: String
-    if let target {
-      resolvedTarget = target
-    } else if let envTarget = resolveEnv("GHOSTTY_SURFACE_UUID") {
-      resolvedTarget = envTarget
-    } else {
-      throw GhosttyError.message("set-title requires -t <target> or $GHOSTTY_SURFACE_UUID")
-    }
-
     let title = positional.joined(separator: " ")
     if title.isEmpty {
       throw GhosttyError.message("set-title requires a title")
@@ -63,9 +54,8 @@ struct SetTitleCommand: GhostmuxCommand {
     }
 
     let terminals = try context.client.listTerminals()
-    guard let targetTerminal = resolveTarget(resolvedTarget, terminals: terminals) else {
-      throw GhosttyError.message("can't find terminal: \(resolvedTarget)")
-    }
+    let policy: SurfaceResolutionPolicy = .regularTarget
+    let targetTerminal = try resolveSurfaceTarget(target, terminals: terminals, policy: policy)
 
     do {
       try context.client.setTitle(terminalId: targetTerminal.id, title: title)

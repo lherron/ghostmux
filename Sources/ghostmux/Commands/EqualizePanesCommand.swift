@@ -51,20 +51,9 @@ struct EqualizePanesCommand: GhostmuxCommand {
       throw GhosttyError.message("unexpected argument: \(arg)")
     }
 
-    // Resolve target
-    let resolvedTarget: String
-    if let target {
-      resolvedTarget = target
-    } else if let envTarget = resolveEnv("GHOSTTY_SURFACE_UUID") {
-      resolvedTarget = envTarget
-    } else {
-      throw GhosttyError.message("equalize-panes requires -t <target> or $GHOSTTY_SURFACE_UUID")
-    }
-
     let terminals = try context.client.listTerminals()
-    guard let targetTerminal = resolveTarget(resolvedTarget, terminals: terminals) else {
-      throw GhosttyError.message("can't find terminal: \(resolvedTarget)")
-    }
+    let policy: SurfaceResolutionPolicy = .regularTarget
+    let targetTerminal = try resolveSurfaceTarget(target, terminals: terminals, policy: policy)
 
     // Execute equalize action
     try context.client.executeAction(terminalId: targetTerminal.id, action: "equalize_splits")

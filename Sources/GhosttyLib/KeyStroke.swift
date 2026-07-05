@@ -83,6 +83,20 @@ public func strokesForLiteral(_ text: String) throws -> [KeyStroke] {
 }
 
 public func strokesForToken(_ token: String) throws -> [KeyStroke] {
+  if let special = try keyStrokeForNamedOrControlToken(token) {
+    return [special]
+  }
+
+  if token.count == 1, let scalar = token.unicodeScalars.first,
+    let stroke = keyStrokeForScalar(scalar)
+  {
+    return [stroke]
+  }
+
+  return try strokesForLiteral(token)
+}
+
+public func keyStrokeForNamedOrControlToken(_ token: String) throws -> KeyStroke? {
   let lower = token.lowercased()
   let namedKeys: [String: KeyStroke] = [
     "enter": KeyStroke(key: "enter", mods: [], text: "\n", unshiftedCodepoint: 0x0A),
@@ -98,7 +112,7 @@ public func strokesForToken(_ token: String) throws -> [KeyStroke] {
   ]
 
   if let named = namedKeys[lower] {
-    return [named]
+    return named
   }
 
   let ctrlPrefixes = ["c-", "ctrl-"]
@@ -108,37 +122,30 @@ public func strokesForToken(_ token: String) throws -> [KeyStroke] {
       if remainder.isEmpty {
         throw GhosttyError.message("invalid key: \(token)")
       }
+
       if let named = namedKeys[remainder.lowercased()] {
-        return [
-          KeyStroke(
-            key: named.key,
-            mods: ["ctrl"] + named.mods,
-            text: nil,
-            unshiftedCodepoint: named.unshiftedCodepoint
-          )
-        ]
+        return KeyStroke(
+          key: named.key,
+          mods: ["ctrl"] + named.mods,
+          text: nil,
+          unshiftedCodepoint: named.unshiftedCodepoint
+        )
       }
+
       if remainder.count == 1, let scalar = remainder.unicodeScalars.first,
         let base = keyStrokeForScalar(scalar)
       {
-        return [
-          KeyStroke(
-            key: base.key,
-            mods: ["ctrl"] + base.mods,
-            text: nil,
-            unshiftedCodepoint: base.unshiftedCodepoint
-          )
-        ]
+        return KeyStroke(
+          key: base.key,
+          mods: ["ctrl"] + base.mods,
+          text: nil,
+          unshiftedCodepoint: base.unshiftedCodepoint
+        )
       }
+
       throw GhosttyError.message("unsupported key: \(token)")
     }
   }
 
-  if token.count == 1, let scalar = token.unicodeScalars.first,
-    let stroke = keyStrokeForScalar(scalar)
-  {
-    return [stroke]
-  }
-
-  return try strokesForLiteral(token)
+  return nil
 }

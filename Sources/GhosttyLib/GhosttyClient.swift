@@ -462,6 +462,8 @@ public struct UDSResponse {
   }
 }
 
+extension GhosttyClient: TerminalTitleClient {}
+
 public enum GhosttyError: Error, CustomStringConvertible {
   case message(String)
   case apiError(Int, String?)

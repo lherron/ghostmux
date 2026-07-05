@@ -54,8 +54,8 @@ struct StreamSurfaceCommand: GhostmuxCommand {
   }
 
   private static func streamOutput(terminalId: String, raw: Bool, client: GhosttyClient) throws {
-    // Connect to UDS
-    let fd = try connectSocket(client.socketPath)
+    let stream = try client.openOutputStream(terminalId: terminalId)
+    defer { stream.close() }
 
     // Set up signal handler for clean exit
     signal(SIGINT) { _ in
@@ -65,36 +65,13 @@ struct StreamSurfaceCommand: GhostmuxCommand {
       exit(0)
     }
 
-    // Send stream request
-    let request: [String: Any] = [
-      "version": "v2",
-      "method": "GET",
-      "path": "/terminals/\(terminalId)/stream",
-    ]
-    try sendFrame(fd, request)
-
-    // Read initial response
-    guard let initialResponse = try? readFrame(fd) else {
-      close(fd)
-      throw GhosttyError.message("failed to read initial response")
-    }
-
-    // Check for error
-    if let status = initialResponse["status"] as? Int, status != 200 {
-      close(fd)
-      let message =
-        (initialResponse["body"] as? [String: Any])?["message"] as? String ?? "stream failed"
-      throw GhosttyError.message(message)
-    }
-
     // Read frames continuously
     do {
       while true {
-        let frame = try readFrame(fd)
+        let event = try stream.readEventFrame()
 
-        if let event = frame["event"] as? String, event == "output",
-          let b64 = frame["data"] as? String,
-          let data = Data(base64Encoded: b64)
+        if event.name == "output",
+          let data = event.data
         {
           if raw {
             FileHandle.standardOutput.write(data)
@@ -111,121 +88,5 @@ struct StreamSurfaceCommand: GhostmuxCommand {
     } catch {
       FileHandle.standardError.write("stream error: \(error)\n".data(using: .utf8)!)
     }
-
-    close(fd)
-  }
-
-  // MARK: - Socket Helpers
-
-  private static func connectSocket(_ socketPath: String) throws -> Int32 {
-    let fd = socket(AF_UNIX, SOCK_STREAM, 0)
-    if fd < 0 {
-      throw GhosttyError.message("failed to create socket")
-    }
-
-    var noSigPipe: Int32 = 1
-    _ = setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &noSigPipe, socklen_t(MemoryLayout<Int32>.size))
-
-    var addr = sockaddr_un()
-    addr.sun_family = sa_family_t(AF_UNIX)
-
-    let maxLength = MemoryLayout.size(ofValue: addr.sun_path)
-    guard socketPath.utf8.count < maxLength else {
-      close(fd)
-      throw GhosttyError.message("socket path too long")
-    }
-
-    let nsPath = socketPath as NSString
-    strncpy(&addr.sun_path.0, nsPath.fileSystemRepresentation, maxLength)
-
-    let result = withUnsafePointer(to: &addr) { pointer in
-      pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-        connect(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size))
-      }
-    }
-
-    if result != 0 {
-      close(fd)
-      throw GhosttyError.message("failed to connect to socket")
-    }
-
-    return fd
-  }
-
-  private static func sendFrame(_ fd: Int32, _ object: [String: Any]) throws {
-    guard let json = try? JSONSerialization.data(withJSONObject: object, options: []) else {
-      throw GhosttyError.message("failed to serialize request")
-    }
-
-    var length = UInt32(json.count).bigEndian
-    var frame = Data()
-    withUnsafeBytes(of: &length) { frame.append(contentsOf: $0) }
-    frame.append(json)
-
-    var total = 0
-    while total < frame.count {
-      let written = frame.withUnsafeBytes { raw in
-        let base = raw.baseAddress!.advanced(by: total)
-        return write(fd, base, frame.count - total)
-      }
-      if written <= 0 {
-        throw GhosttyError.message("failed to write to socket")
-      }
-      total += written
-    }
-  }
-
-  private static func readFrame(_ fd: Int32) throws -> [String: Any] {
-    // Read 4-byte length
-    var lengthBytes = [UInt8](repeating: 0, count: 4)
-    var offset = 0
-    while offset < 4 {
-      let result = lengthBytes.withUnsafeMutableBytes { raw in
-        let base = raw.baseAddress!.advanced(by: offset)
-        return read(fd, base, 4 - offset)
-      }
-      if result < 0 {
-        if errno == EINTR { continue }
-        throw GhosttyError.message("read error: \(errno)")
-      }
-      if result == 0 {
-        throw GhosttyError.message("connection closed")
-      }
-      offset += result
-    }
-
-    let lengthValue = Data(lengthBytes).withUnsafeBytes { $0.load(as: UInt32.self) }
-    let length = Int(UInt32(bigEndian: lengthValue))
-
-    if length <= 0 || length > 10_000_000 {
-      throw GhosttyError.message("invalid frame length: \(length)")
-    }
-
-    // Read payload
-    var payload = [UInt8](repeating: 0, count: length)
-    offset = 0
-    while offset < length {
-      let result = payload.withUnsafeMutableBytes { raw in
-        let base = raw.baseAddress!.advanced(by: offset)
-        return read(fd, base, length - offset)
-      }
-      if result < 0 {
-        if errno == EINTR { continue }
-        throw GhosttyError.message("read error: \(errno)")
-      }
-      if result == 0 {
-        throw GhosttyError.message("connection closed mid-frame")
-      }
-      offset += result
-    }
-
-    let data = Data(payload)
-    guard let object = try? JSONSerialization.jsonObject(with: data, options: []),
-      let dict = object as? [String: Any]
-    else {
-      throw GhosttyError.message("invalid JSON response")
-    }
-
-    return dict
   }
 }

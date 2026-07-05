@@ -1,22 +1,15 @@
-import AppKit
-import Darwin
 import Foundation
 
 public final class GhosttyClient {
-  private static let scriptableGhosttyBundleId = "com.lherron.scriptableghostty"
-  private static let connectRetryAttempts = 20
-  private static let connectRetryDelayMicros: useconds_t = 100_000
-  private static let sendRetryAttempts = 10
-  private static let sendRetryDelayMicros: useconds_t = 100_000
-
   private let _socketPath: String
-  private var didEnsureScriptableGhostty = false
+  private let transport: GhosttyUDSTransport
 
   /// The path to the UDS socket
   public var socketPath: String { _socketPath }
 
   public init(socketPath: String) {
     self._socketPath = socketPath
+    self.transport = GhosttyUDSTransport(socketPath: socketPath)
   }
 
   public func listTerminals() throws -> [Terminal] {
@@ -377,6 +370,28 @@ public final class GhosttyClient {
     }
   }
 
+  public func openOutputStream(terminalId: String) throws -> GhosttyOutputStream {
+    let envelope: [String: Any] = [
+      "version": "v2",
+      "method": "GET",
+      "path": "/terminals/\(terminalId)/stream",
+    ]
+    let payload = try JSONSerialization.data(withJSONObject: envelope, options: [])
+    let stream = try transport.openStream(payload: payload)
+    do {
+      // The transport owns the shared "invalid frame length" validation for both
+      // ordinary responses and stream frames.
+      let initialResponse = try UDSResponse.decode(stream.readFrameData())
+      guard initialResponse.status == 200 else {
+        throw GhosttyError.apiError(initialResponse.status, initialResponse.bodyError)
+      }
+      return GhosttyOutputStream(stream: stream)
+    } catch {
+      stream.close()
+      throw error
+    }
+  }
+
   private func request(
     version: String,
     method: String,
@@ -397,142 +412,8 @@ public final class GhosttyClient {
     }
 
     let payload = try JSONSerialization.data(withJSONObject: envelope, options: [])
-    let responseData = try sendUDS(payload: payload)
+    let responseData = try transport.sendRequest(payload: payload)
     return try UDSResponse.decode(responseData)
-  }
-
-  private func sendUDS(payload: Data) throws -> Data {
-    var lastError: GhosttyError?
-    for attempt in 0..<Self.sendRetryAttempts {
-      do {
-        return try sendUDSOnce(payload: payload)
-      } catch let error as GhosttyError {
-        lastError = error
-        if shouldRetry(error), attempt < Self.sendRetryAttempts - 1 {
-          usleep(Self.sendRetryDelayMicros)
-          continue
-        }
-        throw error
-      }
-    }
-
-    throw lastError ?? GhosttyError.message("failed to send request")
-  }
-
-  private func sendUDSOnce(payload: Data) throws -> Data {
-    let fd = try connectSocket()
-    defer { close(fd) }
-
-    var length = UInt32(payload.count).bigEndian
-    var frame = Data()
-    withUnsafeBytes(of: &length) { frame.append(contentsOf: $0) }
-    frame.append(payload)
-
-    try writeAll(fd, data: frame)
-
-    let header = try readExact(fd, count: 4, context: "response header")
-
-    let responseLengthValue = header.withUnsafeBytes { $0.load(as: UInt32.self) }
-    let responseLength = Int(UInt32(bigEndian: responseLengthValue))
-    guard responseLength > 0 else {
-      throw GhosttyError.message("invalid response length")
-    }
-
-    let response = try readExact(fd, count: responseLength, context: "response body")
-    return response
-  }
-
-  private func connectSocket() throws -> Int32 {
-    try ensureScriptableGhosttyRunning()
-
-    var addr = sockaddr_un()
-    addr.sun_family = sa_family_t(AF_UNIX)
-
-    let maxLength = MemoryLayout.size(ofValue: addr.sun_path)
-    guard _socketPath.utf8.count < maxLength else {
-      throw GhosttyError.message("socket path too long")
-    }
-
-    let nsPath = _socketPath as NSString
-    strncpy(&addr.sun_path.0, nsPath.fileSystemRepresentation, maxLength)
-
-    var lastErrno: Int32 = 0
-    for attempt in 0..<Self.connectRetryAttempts {
-      let fd = socket(AF_UNIX, SOCK_STREAM, 0)
-      if fd < 0 {
-        throw GhosttyError.message("failed to create socket")
-      }
-
-      var noSigPipe: Int32 = 1
-      _ = setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &noSigPipe, socklen_t(MemoryLayout<Int32>.size))
-
-      let result = withUnsafePointer(to: &addr) { pointer in
-        pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-          connect(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size))
-        }
-      }
-
-      if result == 0 {
-        return fd
-      }
-
-      lastErrno = errno
-      close(fd)
-
-      if lastErrno == ENOENT || lastErrno == ECONNREFUSED,
-        attempt < Self.connectRetryAttempts - 1
-      {
-        usleep(Self.connectRetryDelayMicros)
-        continue
-      }
-      break
-    }
-
-    throw GhosttyError.message("cannot connect to Ghostty UDS at \(_socketPath)")
-  }
-
-  private func readExact(_ fd: Int32, count: Int, context: String) throws -> Data {
-    var buffer = [UInt8](repeating: 0, count: count)
-    var offset = 0
-
-    while offset < count {
-      let result = buffer.withUnsafeMutableBytes { raw in
-        let base = raw.baseAddress!.advanced(by: offset)
-        return read(fd, base, count - offset)
-      }
-      if result == 0 {
-        throw GhosttyError.transportRead("short \(context)", 0)
-      }
-      if result < 0 {
-        if errno == EINTR {
-          continue
-        }
-        throw GhosttyError.transportRead("short \(context)", errno)
-      }
-      offset += result
-    }
-
-    return Data(buffer)
-  }
-
-  private func writeAll(_ fd: Int32, data: Data) throws {
-    var total = 0
-    while total < data.count {
-      let written = data.withUnsafeBytes { raw in
-        let base = raw.baseAddress!.advanced(by: total)
-        return write(fd, base, data.count - total)
-      }
-      if written < 0 {
-        if errno == EINTR {
-          continue
-        }
-        throw GhosttyError.transportWrite(errno)
-      }
-      if written == 0 {
-        throw GhosttyError.transportWrite(0)
-      }
-      total += written
-    }
   }
 
   private func parseTerminal(_ dict: [String: Any]) -> Terminal? {
@@ -554,48 +435,6 @@ public final class GhosttyClient {
     )
   }
 
-  private func ensureScriptableGhosttyRunning() throws {
-    if didEnsureScriptableGhostty {
-      return
-    }
-    didEnsureScriptableGhostty = true
-    if isScriptableGhosttyRunning() {
-      return
-    }
-    try launchScriptableGhostty()
-  }
-
-  private func isScriptableGhosttyRunning() -> Bool {
-    !NSRunningApplication.runningApplications(
-      withBundleIdentifier: Self.scriptableGhosttyBundleId
-    ).isEmpty
-  }
-
-  private func launchScriptableGhostty() throws {
-    let task = Process()
-    task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-    task.arguments = ["-g", "-b", Self.scriptableGhosttyBundleId]
-    do {
-      try task.run()
-    } catch {
-      throw GhosttyError.message("failed to launch ScriptableGhostty")
-    }
-    task.waitUntilExit()
-    if task.terminationStatus != 0 {
-      throw GhosttyError.message("failed to launch ScriptableGhostty")
-    }
-  }
-
-  private func shouldRetry(_ error: GhosttyError) -> Bool {
-    switch error {
-    case .transportWrite(let code):
-      return code == EPIPE || code == ECONNRESET || code == ENOTCONN || code == 0
-    case .transportRead(_, let code):
-      return code == EPIPE || code == ECONNRESET || code == ENOTCONN || code == 0
-    default:
-      return false
-    }
-  }
 }
 
 public struct UDSResponse {

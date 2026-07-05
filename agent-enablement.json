@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "rubricVersion": "rubric.md@15f2e87",
+  "rubricVersion": "rubric.md@f148989",
   "catalogVersion": "not-recorded",
   "floor": {
     "lastSweep": null,
@@ -9,30 +9,30 @@
   },
   "observations": [],
   "depth": {
-    "lastAssess": "2026-07-03",
+    "lastAssess": "2026-07-05",
     "writer": "ae",
     "etag": 1,
     "assessment": "agent-enablement/assessments/ghostmux/assessment.json",
     "axes": {
       "F0": "PARTIAL.NOT_APPLICABLE.open_delta",
-      "P0": "PARTIAL.DORMANT.open_delta",
-      "S1": "PARTIAL.DORMANT.open_delta",
-      "S2": "PARTIAL.DORMANT.open_delta",
-      "S3": "PARTIAL.DORMANT.open_delta",
+      "P0": "PRESENT.EXERCISED.satisfied.exercised",
+      "S1": "PARTIAL.EXERCISED.open_delta",
+      "S2": "PARTIAL.EXERCISED.open_delta",
+      "S3": "PRESENT.EXERCISED.satisfied.exercised",
       "S3.affordanceGating": "ABSENT.NOT_APPLICABLE.not_applicable",
-      "S4": "PARTIAL.DORMANT.open_delta",
-      "S5": "ABSENT.NOT_APPLICABLE.open_delta",
-      "S6": "PARTIAL.DORMANT.open_delta",
-      "S7": "PARTIAL.DORMANT.open_delta",
-      "S8": "UNKNOWN.UNKNOWN.tacit",
-      "TA": "ABSENT.NOT_APPLICABLE.open_delta",
-      "TB": "PARTIAL.DORMANT.open_delta",
-      "TC": "ABSENT.NOT_APPLICABLE.open_delta",
-      "TD": "PARTIAL.DORMANT.open_delta",
-      "TD.selfDescribingSurfaceConformance": "PARTIAL.DORMANT.open_delta",
-      "TE": "PARTIAL.DORMANT.open_delta",
-      "TE.claimScopedEvidenceRouting": "UNKNOWN.UNKNOWN.deferred",
-      "TF": "PARTIAL.EXERCISED.open_delta"
+      "S4": "PARTIAL.EXERCISED.open_delta",
+      "S5": "PRESENT.EXERCISED.satisfied.exercised",
+      "S6": "PARTIAL.EXERCISED.open_delta",
+      "S7": "PARTIAL.EXERCISED.open_delta",
+      "S8": "PARTIAL.NOT_APPLICABLE.tacit",
+      "TA": "PARTIAL.DORMANT.targeted",
+      "TB": "PARTIAL.EXERCISED.targeted",
+      "TC": "PARTIAL.EXERCISED.targeted",
+      "TD": "PARTIAL.EXERCISED.open_delta",
+      "TD.selfDescribingSurfaceConformance": "PARTIAL.EXERCISED.open_delta",
+      "TE": "PRESENT.EXERCISED.satisfied.exercised",
+      "TE.claimScopedEvidenceRouting": "PARTIAL.EXERCISED.targeted",
+      "TF": "ABSENT.NOT_APPLICABLE.not_applicable"
     },
     "profileSummary": {
       "generatedBy": "agent-enablement/validate-contract.mjs --sync-target",
@@ -40,29 +40,35 @@
         "profile": "agent-enablement/assessments/ghostmux/profile.json",
         "assessment": "agent-enablement/assessments/ghostmux/assessment.json",
         "deltas": "agent-enablement/assessments/ghostmux/deltas.json",
-        "profileHash": "0394798d0322595b0b01112db9101f21578d2b52723b758b44ab5115412ce675",
-        "assessmentHash": "2e9cd674494ea140253d9c4632bef3da7ff6d47fe1d2d37a6e13128425d5b27e",
-        "deltasHash": "8a3696d8a18eb0601b6a310a49415b4fead01d46f17ccebd33409c0384848444"
+        "profileHash": "f85dee00da3e45ae9e2530881a623780e6dd64c5707bd4aeb115a275608675e7",
+        "assessmentHash": "6ee230df46147369dd1f6034470eb0616ef2c4b73b6909f5f476b754c98e7ecf",
+        "deltasHash": "9649a0ee21e65099a9179f9b65bb4451065637841565f7a05b45f6306ec35aca"
       },
-      "decidedAt": "2026-07-03",
-      "assessedAt": "2026-07-03",
+      "decidedAt": "2026-07-05",
+      "assessedAt": "2026-07-05",
       "profileStatusCounts": {
         "required": 12,
-        "not_applicable": 1,
+        "frontier": 6,
+        "not_applicable": 3,
         "manual_residue": 1,
-        "recommended": 4,
-        "frontier": 1
+        "recommended": 3
       },
-      "openDeltaIds": [],
+      "openDeltaIds": [
+        "delta:add-command-scaffold",
+        "delta:add-secret-scan-floor",
+        "delta:extend-command-surface-options-examples",
+        "delta:legibility-command-surface-registry-json",
+        "delta:legibility-smoke-json-proof",
+        "delta:legibility-split-verify-predicates",
+        "delta:strengthen-command-ingress-types",
+        "delta:wire-swift-and-contract-tests-into-verify"
+      ],
       "failingOpenAxes": [
         "F0",
-        "P0",
         "S1",
         "S2",
-        "S3",
         "S3.affordanceGating",
         "S4",
-        "S5",
         "S6",
         "S7",
         "S8",
@@ -71,102 +77,125 @@
         "TC",
         "TD",
         "TD.selfDescribingSurfaceConformance",
-        "TE",
         "TE.claimScopedEvidenceRouting",
         "TF"
       ],
       "axes": {
         "F0": {
           "status": "required",
-          "rationale": "Baseline hygiene is PM/floor-owned and presence-only. ghostmux has README, CLAUDE.md, SwiftPM metadata, ASP config, and ignores build/ASP output, but no repo-declared secret-scan hook or AGENTS.md router."
+          "minimumRung": "PM-floor-with-secret-scan-present",
+          "rationale": "Baseline hygiene remains PM-owned and presence-only; ghostmux has most floor surfaces but no repo-declared secret-scan hook."
         },
         "P0": {
           "status": "required",
-          "minimumRung": "runnable-verify-plus-verify-hook-gate",
-          "rationale": "ghostmux is a local terminal-control CLI that creates, focuses, kills, captures, and injects input into real Ghostty surfaces; a single green verify command and local hook-enforced handoff gate are preconditions for deeper rules."
+          "minimumRung": "runnable-verify-plus-hook-enforced-local-gate",
+          "rationale": "ghostmux mutates real terminal state; the precondition is a runnable local verify gate enforced by committed hooks."
         },
         "S1": {
           "status": "required",
-          "minimumRung": "typed-command-ingress-and-target-resolution-proofs",
-          "rationale": "Swift can make more command, target, socket, and protocol states explicit. Current code has some typed models, but many command options and terminal targets are still raw strings parsed inside each command."
+          "minimumRung": "ELIMINATE-shared-target-resolution-and-typed-command-ingress",
+          "rationale": "The repo already has typed API models and a shared surface resolver; high-risk command options and metadata payloads are still parsed as raw strings/dictionaries."
+        },
+        "S1.authorityChannelSplit": {
+          "status": "frontier",
+          "rationale": "ghostmux does not compile launch/runtime authority overlays; probe only if it starts dispatching compiled runtime artifacts."
         },
         "S2": {
           "status": "required",
-          "minimumRung": "one-command-shape-plus-command-addition-scaffold",
-          "rationale": "The repo already has a consistent GhostmuxCommand shape across 20 command files; adding a command still requires manual registration and duplicated help/README updates."
+          "minimumRung": "one-command-shape-plus-scaffold-or-registry-manifest",
+          "rationale": "Twenty command structs follow a dominant protocol, but new command work still depends on manual registration and duplicated help/docs updates."
         },
         "S3": {
           "status": "required",
           "minimumRung": "TRAIN-router-plus-reachable-command-discovery",
-          "rationale": "Agents enter through a Claude-oriented guide and README. The target needs a repo-neutral task router and command disclosure that stays aligned with the executable command registry."
+          "rationale": "Agents enter through AGENTS.md and route into Justfile, README, docs, and tests; command disclosure is checked against live command tokens."
         },
         "S3.affordanceGating": {
           "status": "not_applicable",
-          "rationale": "ghostmux does not assemble model prompts or dynamically project tool carriers; affordance-gated disclosure belongs to the agent runtime/context layer."
+          "rationale": "ghostmux is a Swift CLI/library package and does not assemble model prompts or dynamically project tool/skill carrier surfaces."
         },
         "S4": {
           "status": "required",
-          "minimumRung": "GUARD-with-teaching-diagnostics-for-command-and-protocol-boundaries",
-          "rationale": "The CLI controls real terminals and transports JSON over a Unix socket. Generic Swift build coverage is not enough; target-specific guards should catch command-registration/help drift and protocol-shape defects with fix-oriented diagnostics."
+          "minimumRung": "GUARD-with-teaching-diagnostics-for-command-protocol-and-transport-boundaries",
+          "rationale": "The CLI controls real terminals over a UDS protocol; boundary and discovery guards need diagnostics that tell an agent what to fix."
         },
         "S5": {
           "status": "required",
-          "minimumRung": "GUARD-suppression-cost-for-format-lint-and-target-guards",
-          "rationale": "Once format/lint/target guards exist, blanket skips or suppressions need a reviewed exception channel; today there is no declared suppression-cost mechanism."
+          "minimumRung": "GUARD-reviewed-suppression-budget",
+          "rationale": "Smoke skips, hook bypasses, and formatter disables must be visible and issue-backed because they can silence the local gate."
         },
         "S6": {
           "status": "required",
           "minimumRung": "GUARD-green-verify-enforced-by-git-hook",
-          "rationale": "The handoff gate should be one fast local verify command enforced by commit/push hooks. ghostmux currently exposes build, format, and smoke recipes separately with no verify recipe and no hook manager."
+          "rationale": "The hook-enforced verify loop exists; it still needs to include the repo’s unit/contract test carriers or intentionally retire them."
         },
         "S7": {
           "status": "required",
-          "minimumRung": "WARN-to-GUARD-command-surface-and-runbook-rot-sensors",
-          "rationale": "README usage, root help, per-command help, commandTypes registration, runbooks, and smoke behavior can drift silently; command-surface freshness is high leverage for agents."
+          "minimumRung": "WARN-to-GUARD-command-surface-example-and-carrier-rot-sensors",
+          "rationale": "Command tokens are now guarded, but README options/examples and some runbook carriers can still drift silently."
+        },
+        "S7.contractHashClosure": {
+          "status": "frontier",
+          "rationale": "No compiled cross-process contract artifact is produced by ghostmux itself; keep as a frontier sighting only if generated launch/session artifacts land here."
         },
         "S8": {
           "status": "manual_residue",
           "minimumRung": "few-high-signal-rules-only",
-          "rationale": "For this small Swift CLI, broad style/rule taste should stay human judgment. Mechanize only defects with cheap negative smokes, such as command/help drift, missing verify hook, and smoke skipping."
+          "rationale": "Broad Swift style and taste rules should remain judgment; ghostmux should mechanize only repeated, concrete failures with negative-smoke evidence."
         },
         "TA": {
           "status": "recommended",
-          "minimumRung": "independent-smoke-review-for-terminal-control-changes",
-          "rationale": "Changes that inject keys, kill surfaces, or alter screenshots benefit from implementer/verifier separation, but this is a workflow lever rather than a repo-local substrate requirement."
+          "minimumRung": "independent-real-terminal-smoke-review-for-risky-terminal-control-changes",
+          "rationale": "Praesidium can supply architect/builder/smoke roles, but ghostmux does not own a repo-local role-separation gate."
+        },
+        "TA.actuatorSplit": {
+          "status": "frontier",
+          "rationale": "Credential-separated actuation is upstream platform policy, not currently a ghostmux repo mechanism."
         },
         "TB": {
           "status": "recommended",
-          "minimumRung": "process-carrier-for-ghostmux-change-closeout",
-          "rationale": "Repeated changes should carry a small closeout procedure: verify, install, and real installed-binary terminal smoke. The current CLAUDE.md lists commands but does not carry the full process."
+          "minimumRung": "process-carrier-for-verify-install-installed-smoke-closeout",
+          "rationale": "AGENTS.md now carries closeout procedure; there is still no invokable repo-local skill."
+        },
+        "TB.lifecycleHealth": {
+          "status": "frontier",
+          "rationale": "ghostmux does not let agents create or mutate skills inside the repo."
         },
         "TC": {
           "status": "recommended",
-          "minimumRung": "lightweight-enablement-changelog",
-          "rationale": "Lessons about Ghostty socket behavior, tmux environment resolution, and smoke reliability need a low-friction place to land if the repo continues to evolve."
+          "minimumRung": "lightweight-enable-retro-carrier-with-routing",
+          "rationale": "AGENT_ENABLEMENT_RETRO.md exists and has one remediation closeout entry; no cadence trigger is enforced."
         },
         "TD": {
           "status": "required",
           "minimumRung": "live-command-surface-discovery",
-          "rationale": "Agents use ghostmux as a terminal actuator; executable command discovery should come from the live command registry rather than hand-copied prose."
+          "rationale": "Agents use ghostmux as a terminal actuator; command discovery must derive from the live dispatch registry, not stale prose."
         },
         "TD.selfDescribingSurfaceConformance": {
           "status": "required",
-          "minimumRung": "registry-derived-help-docs-plus-drift-gate",
-          "rationale": "The command list and help text are the operational API. Stale command disclosure can make agents send input, screenshots, or kill requests to the wrong surface."
+          "minimumRung": "registry-derived-help-docs-plus-option-and-example-drift-gate",
+          "rationale": "Command-token conformance is present, but README option/example drift remains observable at HEAD."
         },
         "TE": {
           "status": "required",
-          "minimumRung": "acceptance-smokes-that-fail-when-the-real-api-is-unavailable",
-          "rationale": "The existing smoke script exercises real terminal behavior but exits 0 when the Ghostty socket is absent; acceptance proof should distinguish skipped prerequisites from passed behavior."
+          "minimumRung": "acceptance-smokes-that-fail-closed-for-real-runtime-claims",
+          "rationale": "A real Ghostty smoke is the required acceptance proof for terminal behavior and now fails closed under just verify."
         },
         "TE.claimScopedEvidenceRouting": {
           "status": "frontier",
-          "rationale": "Claim-scoped evidence routing is useful for install/smoke claims, but remains frontier and should be probed opportunistically rather than scored as a hard required axis."
+          "rationale": "Smoke result states are useful claim evidence, but full proof-profile routing remains frontier and should not gate ghostmux today."
+        },
+        "TE.crossHarnessConformanceMatrix": {
+          "status": "frontier",
+          "rationale": "ghostmux has one ScriptableGhostty UDS harness, not interchangeable providers."
         },
         "TF": {
-          "status": "recommended",
-          "minimumRung": "explicit-terminal-session-state-probes",
-          "rationale": "ghostmux controls terminal surfaces and ghostchat identity metadata, not a work-item state engine. Lightweight lifecycle probes are valuable, but a full work-state control plane belongs upstream in hrc/wrkq."
+          "status": "not_applicable",
+          "rationale": "ghostmux is a terminal actuator and ghostchat metadata tool, not the executable work-state control plane; work transitions belong upstream in wrkq/hrc."
+        },
+        "TF.workflowAdoption": {
+          "status": "not_applicable",
+          "rationale": "No ghostmux-owned work-state engine exists to adopt; do not count terminal lifecycle state as a TF work-control plane."
         }
       }
     }

@@ -1,3 +1,4 @@
 [commands]
 install = "swift build"
 test = "swift test"
+prep = "true"

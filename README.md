@@ -68,8 +68,8 @@ ghostmux send-key <target> Escape
 ghostmux set-title <target> "New Title"
 
 # Set background color
-ghostmux set-bg <target> --color "#1a1b26"
-ghostmux set-bg <target> --rgb 26,27,38
+ghostmux set-bg -t <target> --color "#1a1b26"
+ghostmux set-bg -t <target> --reset
 
 # Raise a terminal window
 ghostmux focus -t <target>
@@ -78,10 +78,10 @@ ghostmux focus -t <target>
 ghostmux attach-host-session -t <target> animata-host://workspace/animata:center
 
 # Control status bar
-ghostmux statusbar <target> --left "Status"
-ghostmux statusbar <target> --center "Center" --right "Right"
-ghostmux statusbar <target> --hide
-ghostmux statusbar <target> --show
+ghostmux statusbar set -t <target> "Status||"
+ghostmux statusbar set -t <target> "Status|Center|Right"
+ghostmux statusbar hide -t <target>
+ghostmux statusbar show -t <target>
 
 # Manage metadata
 ghostmux metadata get -t <target>
@@ -90,7 +90,7 @@ ghostmux metadata delete -t <target>
 
 # Capture terminal content
 ghostmux capture-pane <target>            # Full scrollback
-ghostmux capture-pane <target> --visible  # Visible area only
+ghostmux capture-pane -t <target>         # Visible area only (default)
 ghostmux capture-pane <target> -S -10     # Last 10 lines
 ghostmux capture-pane <target> -S 0 -E 50 # Lines 0-50
 

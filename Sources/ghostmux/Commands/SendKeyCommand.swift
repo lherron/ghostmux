@@ -69,81 +69,24 @@ struct SendKeyCommand: GhostmuxCommand {
     let policy: SurfaceResolutionPolicy = .regularTarget
     let targetTerminal = try resolveSurfaceTarget(target, terminals: terminals, policy: policy)
 
-    if literal {
-      // Literal mode: send all text using native input API
-      let text = positional.joined(separator: " ")
-      try context.client.sendText(terminalId: targetTerminal.id, text: text)
-    } else {
-      // Send each token - special keys via sendKey, text via sendText
-      for token in positional {
-        if let specialKey = specialKeyStroke(for: token) {
-          try context.client.sendKey(terminalId: targetTerminal.id, stroke: specialKey)
-        } else {
-          try context.client.sendText(terminalId: targetTerminal.id, text: token)
-        }
-      }
-    }
-
-    // Never send Enter - that's the difference from send-keys
+    let inputPolicy = InputPlanPolicy(
+      literal: literal,
+      textGrouping: literal ? .joined(separator: " ") : .individualTokens,
+      recognizeSpecialTokens: !literal,
+      appendEnter: false,
+      appendEnterDelayMicros: nil
+    )
+    let operations = try InputPlanner.plan(tokens: positional, policy: inputPolicy)
+    // executeInputPlan sends planned .text chunks through /input and .key events through /key.
+    try executeInputPlan(
+      operations,
+      to: targetTerminal.id,
+      client: context.client,
+      policy: inputPolicy
+    )
 
     if json {
       writeJSON(["success": true])
     }
-  }
-
-  /// Returns a KeyStroke if the token is a special key, nil otherwise
-  private static func specialKeyStroke(for token: String) -> KeyStroke? {
-    let lower = token.lowercased()
-
-    let namedKeys: [String: KeyStroke] = [
-      "enter": KeyStroke(key: "enter", mods: [], text: "\n", unshiftedCodepoint: 0x0A),
-      "return": KeyStroke(key: "enter", mods: [], text: "\n", unshiftedCodepoint: 0x0A),
-      "tab": KeyStroke(key: "tab", mods: [], text: "\t", unshiftedCodepoint: 0x09),
-      "escape": KeyStroke(key: "escape", mods: [], text: nil, unshiftedCodepoint: 0),
-      "esc": KeyStroke(key: "escape", mods: [], text: nil, unshiftedCodepoint: 0),
-      "bspace": KeyStroke(key: "backspace", mods: [], text: nil, unshiftedCodepoint: 0),
-      "backspace": KeyStroke(key: "backspace", mods: [], text: nil, unshiftedCodepoint: 0),
-      "dc": KeyStroke(key: "delete", mods: [], text: nil, unshiftedCodepoint: 0),
-      "delete": KeyStroke(key: "delete", mods: [], text: nil, unshiftedCodepoint: 0),
-    ]
-
-    if let named = namedKeys[lower] {
-      return named
-    }
-
-    // Control key combinations (C-x, Ctrl-x)
-    let ctrlPrefixes = ["c-", "ctrl-"]
-    for prefix in ctrlPrefixes {
-      if lower.hasPrefix(prefix) {
-        let remainder = String(token.dropFirst(prefix.count))
-        if remainder.isEmpty {
-          return nil
-        }
-
-        if let named = namedKeys[remainder.lowercased()] {
-          return KeyStroke(
-            key: named.key,
-            mods: ["ctrl"] + named.mods,
-            text: nil,
-            unshiftedCodepoint: named.unshiftedCodepoint
-          )
-        }
-
-        if remainder.count == 1, let scalar = remainder.unicodeScalars.first,
-          let base = keyStrokeForScalar(scalar)
-        {
-          return KeyStroke(
-            key: base.key,
-            mods: ["ctrl"] + base.mods,
-            text: nil,
-            unshiftedCodepoint: base.unshiftedCodepoint
-          )
-        }
-
-        return nil
-      }
-    }
-
-    return nil
   }
 }

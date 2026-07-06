@@ -49,41 +49,32 @@ struct SetTitleCommand: GhostmuxCommand {
       throw GhosttyError.message("set-title requires a title")
     }
 
-    if title.contains("\u{1b}") || title.contains("\u{07}") {
-      throw GhosttyError.message("set-title does not allow escape or bell characters")
-    }
-
     let terminals = try context.client.listTerminals()
     let policy: SurfaceResolutionPolicy = .regularTarget
     let targetTerminal = try resolveSurfaceTarget(target, terminals: terminals, policy: policy)
+    let titleResult = TerminalTitlePolicy(client: context.client).setTitle(
+      terminalId: targetTerminal.id,
+      title: title
+    )
 
-    do {
-      try context.client.setTitle(terminalId: targetTerminal.id, title: title)
+    switch titleResult {
+    case .endpointSuccess, .fallbackSuccess:
       if json {
-        writeJSON(["success": true])
+        var output: [String: Any] = [
+          "success": true,
+          "title_result": titleResult.resultName,
+        ]
+        if let titleWarning = titleResult.warningMessage {
+          output["title_warning"] = titleWarning
+        }
+        writeJSON(output)
+      } else if let titleWarning = titleResult.warningMessage {
+        fputs("warning: \(titleWarning)\n", stderr)
       }
       return
-    } catch let error as GhosttyError {
-      switch error {
-      case .apiError(let status, let message):
-        if status == 404 || (message?.contains("Endpoint not found") ?? false) {
-          let command = oscPrintfCommand(title: title)
-          try context.client.sendText(terminalId: targetTerminal.id, text: command + "\n")
-          fputs("warning: /title endpoint unavailable; sent OSC via shell input\n", stderr)
-          return
-        }
-        throw error
-      default:
-        throw error
-      }
-    }
-  }
 
-  private static func oscPrintfCommand(title: String) -> String {
-    let escaped =
-      title
-      .replacingOccurrences(of: "\\", with: "\\\\")
-      .replacingOccurrences(of: "'", with: "\\'")
-    return "printf $'\\e]0;\(escaped)\\a'"
+    case .invalid(let message), .failure(let message):
+      throw GhosttyError.message(message)
+    }
   }
 }

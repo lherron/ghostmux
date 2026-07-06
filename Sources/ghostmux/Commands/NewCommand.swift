@@ -124,34 +124,35 @@ struct NewCommand: GhostmuxCommand {
 
     let terminal = try context.client.createTerminal(request: request)
 
-    // Set title if provided (with delay to let shell initialize first)
-    var titleError: String?
-    if let title {
-      if title.contains("\u{1b}") || title.contains("\u{07}") {
-        titleError = "title contains invalid characters (escape or bell)"
-      } else {
-        // Wait for shell to fully initialize before setting title
-        // Otherwise the shell may overwrite our title with its default
-        usleep(1_000_000)  // 1 second
-        do {
-          try context.client.setTitle(terminalId: terminal.id, title: title)
-        } catch {
-          titleError = "failed to set title: \(error)"
-        }
+    let titleResult =
+      title.map {
+        TerminalTitlePolicy(client: context.client).setTitle(
+          terminalId: terminal.id,
+          title: $0,
+          postCreateDelay: 1.0
+        )
       }
-    }
 
     if json {
       var output = terminal.toJsonDict()
-      if let titleError {
-        output["title_error"] = titleError
+      if let titleResult {
+        output["title_result"] = titleResult.resultName
+        if let titleWarning = titleResult.warningMessage {
+          output["title_warning"] = titleWarning
+        }
+        if let titleError = titleResult.errorMessage {
+          output["title_error"] = titleError
+        }
       }
       writeJSON(output)
       return
     }
 
     print(terminalSummary(terminal))
-    if let titleError {
+    if let titleWarning = titleResult?.warningMessage {
+      fputs("warning: \(titleWarning)\n", stderr)
+    }
+    if let titleError = titleResult?.errorMessage {
       fputs("warning: \(titleError)\n", stderr)
     }
   }

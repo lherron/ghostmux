@@ -41,7 +41,7 @@
         "assessment": "agent-enablement/assessments/ghostmux/assessment.json",
         "deltas": "agent-enablement/assessments/ghostmux/deltas.json",
         "profileHash": "f85dee00da3e45ae9e2530881a623780e6dd64c5707bd4aeb115a275608675e7",
-        "assessmentHash": "6ee230df46147369dd1f6034470eb0616ef2c4b73b6909f5f476b754c98e7ecf",
+        "assessmentHash": "c46616b004715f2f591cd9816db0273f6fc989c6cdb7cc17e1e27daccf1646fe",
         "deltasHash": "9649a0ee21e65099a9179f9b65bb4451065637841565f7a05b45f6306ec35aca"
       },
       "decidedAt": "2026-07-05",

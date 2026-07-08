@@ -47,8 +47,20 @@ if [[ -z "$target" ]]; then
   exit 1
 fi
 
+cleanup_result="not_run"
+cleanup_done=0
+
 cleanup() {
-  "$BIN" kill-surface -t "$target" --force >/dev/null 2>&1 || true
+  if [[ "$cleanup_done" == "1" ]]; then
+    return 0
+  fi
+
+  cleanup_done=1
+  if "$BIN" kill-surface -t "$target" --force >/dev/null 2>&1; then
+    cleanup_result="killed"
+  else
+    cleanup_result="failed"
+  fi
 }
 trap cleanup EXIT
 
@@ -61,5 +73,13 @@ shot="$(mktemp -t ghostmux-screenshot-smoke).png"
 file "$shot" | grep -q "PNG image data"
 rm -f "$shot"
 
+cleanup
+trap - EXIT
+
 echo "GHOSTMUX_SMOKE_RESULT=passed"
+printf 'GHOSTMUX_SMOKE_EVIDENCE={"result":"passed","binary_path":"%s","socket_path":"%s","created_short_id":"%s","exercised_commands":["new","send-keys","capture-pane","screenshot","kill-surface"],"screenshot_validation":"png","cleanup_result":"%s"}\n' \
+  "$(json_escape "$BIN")" \
+  "$(json_escape "$SOCK")" \
+  "$(json_escape "$target")" \
+  "$(json_escape "$cleanup_result")"
 echo "OK"

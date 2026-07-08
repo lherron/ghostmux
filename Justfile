@@ -19,9 +19,21 @@ check-suppressions:
     @bash Tests/suppression_guard.sh
 
 # Run the full local quality gate
-verify: build lint command-surface check-suppressions
-    @env GHOSTMUX_SMOKE_ALLOW_SKIP=0 bash Tests/ghostmux_smoke.sh
+verify: verify-tests verify-command-surface verify-suppressions verify-smoke
     @echo "ghostmux verify OK"
+
+# Run build and formatting checks used by the local quality gate
+verify-tests: build lint
+
+# Check documented command surface used by the local quality gate
+verify-command-surface: command-surface
+
+# Validate suppression inventory used by the local quality gate
+verify-suppressions: check-suppressions
+
+# Run strict runtime smoke used by the local quality gate
+verify-smoke:
+    @env GHOSTMUX_SMOKE_ALLOW_SKIP=0 bash Tests/ghostmux_smoke.sh
 
 # Check documented command surface against the real CLI registry
 command-surface: build

@@ -4,54 +4,38 @@ import GhosttyLib
 struct SetTitleCommand: GhostmuxCommand {
   static let name = "set-title"
   static let aliases: [String] = []
-  static let help = """
-    Usage:
-      ghostmux set-title -t <target> <title>
-
-    Options:
-      -t <target>           Target terminal (UUID, title, or UUID prefix)
-                            Falls back to $GHOSTTY_SURFACE_UUID if not specified
-      --json                Output JSON
-      -h, --help            Show this help
+  static let help = commandHelp(
     """
+      Usage:
+        ghostmux set-title -t <target> <title>
+
+      Options:
+        -t <target>           Target terminal (UUID, title, or UUID prefix)
+                              Falls back to $GHOSTTY_SURFACE_UUID if not specified
+        --json                Output JSON
+        -h, --help            Show this help
+    """)
 
   static func run(context: CommandContext) throws {
-    var target: String?
-    var positional: [String] = []
-    var json = false
-
-    var i = 0
-    while i < context.args.count {
-      let arg = context.args[i]
-      if arg == "-t", i + 1 < context.args.count {
-        target = context.args[i + 1]
-        i += 2
-        continue
-      }
-
-      if arg == "-h" || arg == "--help" {
-        print(help)
-        return
-      }
-
-      if arg == "--json" {
-        json = true
-        i += 1
-        continue
-      }
-
-      positional.append(arg)
-      i += 1
+    let parsed = try parseCommandArguments(
+      context.args,
+      positionals: .collect,
+      flagLikePositionals: true
+    )
+    if parsed.help {
+      print(help)
+      return
     }
 
-    let title = positional.joined(separator: " ")
+    let title = parsed.positionals.joined(separator: " ")
     if title.isEmpty {
       throw GhosttyError.message("set-title requires a title")
     }
 
     let terminals = try context.client.listTerminals()
     let policy: SurfaceResolutionPolicy = .regularTarget
-    let targetTerminal = try resolveSurfaceTarget(target, terminals: terminals, policy: policy)
+    let targetTerminal = try resolveSurfaceTarget(
+      parsed.target, terminals: terminals, policy: policy)
     let titleResult = TerminalTitlePolicy(client: context.client).setTitle(
       terminalId: targetTerminal.id,
       title: title
@@ -59,7 +43,7 @@ struct SetTitleCommand: GhostmuxCommand {
 
     switch titleResult {
     case .endpointSuccess, .fallbackSuccess:
-      if json {
+      if parsed.json {
         var output: [String: Any] = [
           "success": true,
           "title_result": titleResult.resultName,

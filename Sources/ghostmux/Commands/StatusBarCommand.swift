@@ -4,101 +4,69 @@ import GhosttyLib
 struct StatusBarCommand: GhostmuxCommand {
   static let name = "statusbar"
   static let aliases: [String] = []
-  static let help = """
-    Usage:
-      ghostmux statusbar set -t <target> "left|center|right" [--fg <color>] [--bg <color>]
-      ghostmux statusbar set -t <target> --fg <color> --bg <color>
-      ghostmux statusbar get -t <target> [--json]
-      ghostmux statusbar show -t <target>
-      ghostmux statusbar hide -t <target>
-      ghostmux statusbar toggle -t <target>
-
-      Note: "show" makes the bar visible; "get" reads back the configured spec
-      (left/center/right text, fg, bg, visible state).
-
-      Use empty fields for blanks, e.g. "left||right"
-
-    Options:
-      -t <target>           Target terminal (UUID, title, or UUID prefix)
-                            Falls back to $GHOSTTY_SURFACE_UUID if not specified
-      --window              Apply to window fallback instead of surface
-      --fg <color>          Foreground (text) color
-      --bg <color>          Background color
-      --json                Output JSON
-      -h, --help            Show this help
-
-    Colors:
-      Named colors: black, red, green, yellow, blue, magenta, cyan, white,
-                    brightblack, brightred, brightgreen, brightyellow,
-                    brightblue, brightmagenta, brightcyan, brightwhite,
-                    orange, pink, purple, teal, navy, maroon, gray, silver
-      Hex values:   #RGB, #RRGGBB, or without # prefix
-      Special:      "default" resets to default color
+  static let help = commandHelp(
     """
+      Usage:
+        ghostmux statusbar set -t <target> "left|center|right" [--fg <color>] [--bg <color>]
+        ghostmux statusbar set -t <target> --fg <color> --bg <color>
+        ghostmux statusbar get -t <target> [--json]
+        ghostmux statusbar show -t <target>
+        ghostmux statusbar hide -t <target>
+        ghostmux statusbar toggle -t <target>
+
+        Note: "show" makes the bar visible; "get" reads back the configured spec
+        (left/center/right text, fg, bg, visible state).
+
+        Use empty fields for blanks, e.g. "left||right"
+
+      Options:
+        -t <target>           Target terminal (UUID, title, or UUID prefix)
+                              Falls back to $GHOSTTY_SURFACE_UUID if not specified
+        --window              Apply to window fallback instead of surface
+        --fg <color>          Foreground (text) color
+        --bg <color>          Background color
+        --json                Output JSON
+        -h, --help            Show this help
+
+      Colors:
+        Named colors: black, red, green, yellow, blue, magenta, cyan, white,
+                      brightblack, brightred, brightgreen, brightyellow,
+                      brightblue, brightmagenta, brightcyan, brightwhite,
+                      orange, pink, purple, teal, navy, maroon, gray, silver
+        Hex values:   #RGB, #RRGGBB, or without # prefix
+        Special:      "default" resets to default color
+    """)
 
   static func run(context: CommandContext) throws {
-    var target: String?
-    var positional: [String] = []
-    var json = false
-    var windowScope = false
-    var fgColor: String?
-    var bgColor: String?
-
-    var i = 0
-    while i < context.args.count {
-      let arg = context.args[i]
-      if arg == "-t", i + 1 < context.args.count {
-        target = context.args[i + 1]
-        i += 2
-        continue
-      }
-
-      if arg == "--window" {
-        windowScope = true
-        i += 1
-        continue
-      }
-
-      if arg == "--fg", i + 1 < context.args.count {
-        fgColor = context.args[i + 1]
-        i += 2
-        continue
-      }
-
-      if arg == "--bg", i + 1 < context.args.count {
-        bgColor = context.args[i + 1]
-        i += 2
-        continue
-      }
-
-      if arg == "-h" || arg == "--help" {
-        print(help)
-        return
-      }
-
-      if arg == "--json" {
-        json = true
-        i += 1
-        continue
-      }
-
-      positional.append(arg)
-      i += 1
+    let parsed = try parseCommandArguments(
+      context.args,
+      positionals: .collect,
+      booleanFlags: ["--window"],
+      valueFlags: ["--fg", "--bg"],
+      flagLikePositionals: true
+    )
+    if parsed.help {
+      print(help)
+      return
     }
 
-    guard let subcommand = positional.first else {
+    guard let subcommand = parsed.positionals.first else {
       throw GhosttyError.message("statusbar requires a subcommand: set, show, hide, or toggle")
     }
 
     let terminals = try context.client.listTerminals()
     let policy: SurfaceResolutionPolicy = .regularTarget
-    let targetTerminal = try resolveSurfaceTarget(target, terminals: terminals, policy: policy)
+    let targetTerminal = try resolveSurfaceTarget(
+      parsed.target, terminals: terminals, policy: policy)
 
+    let fgColor = parsed.value(for: "--fg")
+    let bgColor = parsed.value(for: "--bg")
+    let windowScope = parsed.hasFlag("--window")
     let scope = windowScope ? "window" : nil
 
     switch subcommand {
     case "set":
-      let rawValue = positional.dropFirst().joined(separator: " ")
+      let rawValue = parsed.positionals.dropFirst().joined(separator: " ")
 
       // Allow set with just colors (no text content)
       if rawValue.isEmpty && fgColor == nil && bgColor == nil {
@@ -132,11 +100,11 @@ struct StatusBarCommand: GhostmuxCommand {
         bg: bgColor
       )
     case "get":
-      if positional.count > 1 {
+      if parsed.positionals.count > 1 {
         throw GhosttyError.message("statusbar get does not take extra arguments")
       }
       let info = try context.client.getStatusBar(terminalId: targetTerminal.id, scope: scope)
-      if json {
+      if parsed.json {
         writeJSON(info.toJsonDict())
       } else {
         print("left:    \(info.left)")
@@ -149,17 +117,17 @@ struct StatusBarCommand: GhostmuxCommand {
       }
       return
     case "show":
-      if positional.count > 1 {
+      if parsed.positionals.count > 1 {
         throw GhosttyError.message("statusbar show does not take extra arguments")
       }
       try context.client.setStatusBar(terminalId: targetTerminal.id, visible: true, scope: scope)
     case "hide":
-      if positional.count > 1 {
+      if parsed.positionals.count > 1 {
         throw GhosttyError.message("statusbar hide does not take extra arguments")
       }
       try context.client.setStatusBar(terminalId: targetTerminal.id, visible: false, scope: scope)
     case "toggle":
-      if positional.count > 1 {
+      if parsed.positionals.count > 1 {
         throw GhosttyError.message("statusbar toggle does not take extra arguments")
       }
       try context.client.setStatusBar(terminalId: targetTerminal.id, toggle: true, scope: scope)
@@ -167,7 +135,7 @@ struct StatusBarCommand: GhostmuxCommand {
       throw GhosttyError.message("unknown statusbar subcommand: \(subcommand)")
     }
 
-    if json {
+    if parsed.json {
       writeJSON(["success": true])
     }
   }

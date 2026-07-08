@@ -1,4 +1,5 @@
 import Foundation
+import GhostmuxCommandParsing
 import GhosttyLib
 
 struct CommandContext {
@@ -11,6 +12,10 @@ protocol GhostmuxCommand {
   static var aliases: [String] { get }
   static var help: String { get }
   static func run(context: CommandContext) throws
+}
+
+func commandHelp(_ raw: String) -> String {
+  raw
 }
 
 func terminalSummary(_ terminal: Terminal) -> String {
@@ -47,4 +52,28 @@ func resolveSurfaceTarget(
   } catch let error as SurfaceResolutionError {
     throw GhosttyError.message(SurfaceResolutionError.format(error))
   }
+}
+
+func parseCommandArguments(
+  _ args: [String],
+  supportsJSON: Bool = true,
+  targetAliases: Set<String> = ["-t"],
+  repeatedTarget: CommandArgumentParseOptions.RepeatedTargetPolicy = .lastWins,
+  positionals: CommandArgumentParseOptions.PositionalPolicy = .reject,
+  booleanFlags: Set<String> = [],
+  valueFlags: Set<String> = [],
+  flagLikePositionals: Bool = false
+) throws -> CommandArgumentParseResult {
+  try CommandArgumentParser.parse(
+    args,
+    options: CommandArgumentParseOptions(
+      supportsJSON: supportsJSON,
+      targetAliases: targetAliases,
+      repeatedTarget: repeatedTarget,
+      positionals: positionals,
+      booleanFlags: booleanFlags,
+      valueFlags: valueFlags,
+      flagLikePositionals: flagLikePositionals
+    )
+  )
 }

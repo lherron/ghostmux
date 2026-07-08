@@ -1,69 +1,59 @@
 import Foundation
+import GhostmuxCommandParsing
 import GhosttyLib
 
 struct ScreenshotCommand: GhostmuxCommand {
   static let name = "screenshot"
   static let aliases = ["shot"]
-  static let help = """
-    Usage:
-      ghostmux screenshot <uuid|slug> [options]
-      ghostmux screenshot -t <uuid|slug> [options]
-
-    Options:
-      -t <target>           Target terminal (UUID, UUID prefix, short id, or slug)
-                            Falls back to $GHOSTTY_SURFACE_UUID if not specified
-      -o, --output <path>   Output PNG path. Use '-' to write PNG bytes to stdout.
-                            Defaults to /tmp/ghostmux-screenshots/<slug>-<timestamp>.png
-      --json                Output JSON metadata
-      -h, --help            Show this help
+  static let help = commandHelp(
     """
+      Usage:
+        ghostmux screenshot <uuid|slug> [options]
+        ghostmux screenshot -t <uuid|slug> [options]
+
+      Options:
+        -t <target>           Target terminal (UUID, UUID prefix, short id, or slug)
+                              Falls back to $GHOSTTY_SURFACE_UUID if not specified
+        -o, --output <path>   Output PNG path. Use '-' to write PNG bytes to stdout.
+                              Defaults to /tmp/ghostmux-screenshots/<slug>-<timestamp>.png
+        --json                Output JSON metadata
+        -h, --help            Show this help
+    """)
 
   static func run(context: CommandContext) throws {
-    var target: String?
-    var outputPath: String?
-    var json = false
-
-    var i = 0
-    while i < context.args.count {
-      let arg = context.args[i]
-      if arg == "-h" || arg == "--help" {
-        print(help)
-        return
-      }
-
-      if arg == "-t" {
-        guard i + 1 < context.args.count else {
-          throw GhosttyError.message("screenshot requires a value after -t")
-        }
-        try assignTarget(context.args[i + 1], to: &target)
-        i += 2
-        continue
-      }
-
-      if arg == "-o" || arg == "--output" {
-        guard i + 1 < context.args.count else {
-          throw GhosttyError.message("screenshot requires a value after \(arg)")
-        }
-        outputPath = context.args[i + 1]
-        i += 2
-        continue
-      }
-
-      if arg == "--json" {
-        json = true
-        i += 1
-        continue
-      }
-
-      if arg.hasPrefix("-") {
-        throw GhosttyError.message("unexpected argument: \(arg)")
-      }
-
-      try assignTarget(arg, to: &target)
-      i += 1
+    let parsed: CommandArgumentParseResult
+    do {
+      parsed = try parseCommandArguments(
+        context.args,
+        repeatedTarget: .reject,
+        positionals: .collect,
+        valueFlags: ["-o", "--output"]
+      )
+    } catch CommandArgumentParseError.repeatedTarget {
+      throw GhosttyError.message("screenshot accepts only one target")
+    } catch CommandArgumentParseError.missingValue(let flag) where flag == "-t" {
+      throw GhosttyError.message("screenshot requires a value after -t")
+    } catch CommandArgumentParseError.missingValue(let flag)
+      where flag == "-o" || flag == "--output"
+    {
+      throw GhosttyError.message("screenshot requires a value after \(flag)")
     }
 
-    if json && outputPath == "-" {
+    if parsed.help {
+      print(help)
+      return
+    }
+
+    var target = parsed.target
+    if let positionalTarget = parsed.positionals.first {
+      try assignTarget(positionalTarget, to: &target)
+    }
+    if parsed.positionals.count > 1 {
+      throw GhosttyError.message("screenshot accepts only one target")
+    }
+
+    let outputPath = parsed.value(forAny: ["-o", "--output"])
+    if parsed.json && outputPath == "-" {
       throw GhosttyError.message("screenshot --json is not compatible with -o -")
     }
 
@@ -90,7 +80,7 @@ struct ScreenshotCommand: GhostmuxCommand {
       path = destination
     }
 
-    if json {
+    if parsed.json {
       var payload: [String: Any] = [
         "id": screenshot.id,
         "name": NameGenerator.nameFromUUID(targetTerminal.id),

@@ -4,7 +4,8 @@ import GhosttyLib
 struct CapturePaneCommand: GhostmuxCommand {
   static let name = "capture-pane"
   static let aliases = ["capturep"]
-  static let help = """
+  static let help = commandHelp(
+    """
     Usage:
       ghostmux capture-pane -t <target> [options]
 
@@ -17,7 +18,7 @@ struct CapturePaneCommand: GhostmuxCommand {
       -p                    Print to stdout (default in ghostmux)
       --json                Output JSON
       -h, --help            Show this help
-    """
+    """)
 
   private enum LineSpec {
     case dash
@@ -25,78 +26,46 @@ struct CapturePaneCommand: GhostmuxCommand {
   }
 
   static func run(context: CommandContext) throws {
-    var target: String?
     var startSpec: LineSpec?
     var endSpec: LineSpec?
-    var selection = false
-    var json = false
 
-    var i = 0
-    while i < context.args.count {
-      let arg = context.args[i]
-      if arg == "-t", i + 1 < context.args.count {
-        target = context.args[i + 1]
-        i += 2
-        continue
-      }
+    let unsupportedFlags: Set<String> = ["-a", "-e", "-P", "-q", "-C", "-J", "-M", "-N", "-T"]
+    let parsed = try parseCommandArguments(
+      context.args,
+      booleanFlags: unsupportedFlags.union(["--selection", "-p"]),
+      valueFlags: ["-S", "-E", "-b"]
+    )
+    if parsed.help {
+      print(help)
+      return
+    }
 
-      if arg == "-S", i + 1 < context.args.count {
-        startSpec = try parseLineSpec(context.args[i + 1])
-        i += 2
-        continue
-      }
+    if parsed.value(for: "-b") != nil {
+      throw GhosttyError.message("capture-pane buffers are not supported in ghostmux")
+    }
 
-      if arg == "-E", i + 1 < context.args.count {
-        endSpec = try parseLineSpec(context.args[i + 1])
-        i += 2
-        continue
-      }
+    if let unsupported = parsed.flagOrder.first(where: { unsupportedFlags.contains($0) }) {
+      throw GhosttyError.message("capture-pane flag not supported: \(unsupported)")
+    }
 
-      if arg == "--selection" {
-        selection = true
-        i += 1
-        continue
-      }
-
-      if arg == "-p" {
-        i += 1
-        continue
-      }
-
-      if arg == "--json" {
-        json = true
-        i += 1
-        continue
-      }
-
-      if arg == "-b", i + 1 < context.args.count {
-        throw GhosttyError.message("capture-pane buffers are not supported in ghostmux")
-      }
-
-      if arg == "-a" || arg == "-e" || arg == "-P" || arg == "-q" || arg == "-C" || arg == "-J"
-        || arg == "-M" || arg == "-N" || arg == "-T"
-      {
-        throw GhosttyError.message("capture-pane flag not supported: \(arg)")
-      }
-
-      if arg == "-h" || arg == "--help" {
-        print(help)
-        return
-      }
-
-      throw GhosttyError.message("unexpected argument: \(arg)")
+    if let rawStart = parsed.value(for: "-S") {
+      startSpec = try parseLineSpec(rawStart)
+    }
+    if let rawEnd = parsed.value(for: "-E") {
+      endSpec = try parseLineSpec(rawEnd)
     }
 
     let terminals = try context.client.listTerminals()
     let policy: SurfaceResolutionPolicy = .regularTarget
-    let targetTerminal = try resolveSurfaceTarget(target, terminals: terminals, policy: policy)
+    let targetTerminal = try resolveSurfaceTarget(
+      parsed.target, terminals: terminals, policy: policy)
 
-    if selection {
+    if parsed.hasFlag("--selection") {
       if startSpec != nil || endSpec != nil {
         throw GhosttyError.message("capture-pane --selection is not compatible with -S/-E")
       }
       let selectionText = try context.client.getSelectionContents(terminalId: targetTerminal.id)
-      if json {
+      if parsed.json {
         let payload: [String: Any] = ["selection": selectionText ?? NSNull()]
         writeJSON(payload)
       } else if let selectionText {
@@ -107,7 +76,7 @@ struct CapturePaneCommand: GhostmuxCommand {
 
     if startSpec == nil && endSpec == nil {
       let visible = try context.client.getVisibleContents(terminalId: targetTerminal.id)
-      if json {
+      if parsed.json {
         writeJSON(["contents": visible])
       } else {
         writeStdout(visible)
@@ -140,7 +109,7 @@ struct CapturePaneCommand: GhostmuxCommand {
     }
 
     let output = screenLines[startIndex...endIndex].joined(separator: "\n")
-    if json {
+    if parsed.json {
       writeJSON(["contents": output])
     } else {
       writeStdout(output)

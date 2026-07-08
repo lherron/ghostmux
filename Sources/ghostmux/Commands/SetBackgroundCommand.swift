@@ -4,71 +4,44 @@ import GhosttyLib
 struct SetBackgroundCommand: GhostmuxCommand {
   static let name = "set-bg"
   static let aliases = ["set-background", "bg"]
-  static let help = """
-    Usage:
-      ghostmux set-bg -t <target> [options] <hex>
-
-    Options:
-      -t <target>           Target terminal (UUID, title, or UUID prefix)
-                            Falls back to $GHOSTTY_SURFACE_UUID if not specified
-      --color <hex>         Background color (#RRGGBB or RRGGBB)
-      --reset               Reset background to default (OSC 111)
-      --json                Output JSON
-      -h, --help            Show this help
+  static let help = commandHelp(
     """
+      Usage:
+        ghostmux set-bg -t <target> [options] <hex>
+
+      Options:
+        -t <target>           Target terminal (UUID, title, or UUID prefix)
+                              Falls back to $GHOSTTY_SURFACE_UUID if not specified
+        --color <hex>         Background color (#RRGGBB or RRGGBB)
+        --reset               Reset background to default (OSC 111)
+        --json                Output JSON
+        -h, --help            Show this help
+    """)
 
   static func run(context: CommandContext) throws {
-    var target: String?
     var color: String?
-    var reset = false
-    var json = false
-    var positional: [String] = []
-
-    var i = 0
-    while i < context.args.count {
-      let arg = context.args[i]
-      if arg == "-t", i + 1 < context.args.count {
-        target = context.args[i + 1]
-        i += 2
-        continue
-      }
-
-      if arg == "--color", i + 1 < context.args.count {
-        color = context.args[i + 1]
-        i += 2
-        continue
-      }
-
-      if arg == "--reset" {
-        reset = true
-        i += 1
-        continue
-      }
-
-      if arg == "--json" {
-        json = true
-        i += 1
-        continue
-      }
-
-      if arg == "-h" || arg == "--help" {
-        print(help)
-        return
-      }
-
-      positional.append(arg)
-      i += 1
+    let parsed = try parseCommandArguments(
+      context.args,
+      positionals: .collect,
+      booleanFlags: ["--reset"],
+      valueFlags: ["--color"]
+    )
+    if parsed.help {
+      print(help)
+      return
     }
 
+    color = parsed.value(for: "--color")
+    let reset = parsed.hasFlag("--reset")
     if reset {
-      if color != nil || !positional.isEmpty {
+      if color != nil || !parsed.positionals.isEmpty {
         throw GhosttyError.message("set-bg --reset cannot be combined with a color")
       }
     } else {
       if color == nil {
-        if positional.count == 1 {
-          color = positional[0]
-        } else if positional.isEmpty {
+        if parsed.positionals.count == 1 {
+          color = parsed.positionals[0]
+        } else if parsed.positionals.isEmpty {
           throw GhosttyError.message("set-bg requires a color or --reset")
         } else {
           throw GhosttyError.message("set-bg expects a single color value")
@@ -78,7 +51,8 @@ struct SetBackgroundCommand: GhostmuxCommand {
 
     let terminals = try context.client.listTerminals()
     let policy: SurfaceResolutionPolicy = .regularTarget
-    let targetTerminal = try resolveSurfaceTarget(target, terminals: terminals, policy: policy)
+    let targetTerminal = try resolveSurfaceTarget(
+      parsed.target, terminals: terminals, policy: policy)
 
     if reset {
       try context.client.sendOutput(terminalId: targetTerminal.id, data: oscResetBackground())
@@ -89,7 +63,7 @@ struct SetBackgroundCommand: GhostmuxCommand {
       try context.client.sendOutput(terminalId: targetTerminal.id, data: oscSetBackground(hex: hex))
     }
 
-    if json {
+    if parsed.json {
       writeJSON(["success": true])
     }
   }

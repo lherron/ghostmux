@@ -4,90 +4,50 @@ import GhosttyLib
 struct MetadataCommand: GhostmuxCommand {
   static let name = "metadata"
   static let aliases: [String] = []
-  static let help = """
-    Usage:
-      ghostmux metadata get -t <target> [--window] [--resolved] [--json]
-      ghostmux metadata set -t <target> '<json-object>' [--window] [--replace] [--post] [--json]
-      ghostmux metadata delete -t <target> [--window] [--json]
-
-    Options:
-      -t <target>           Target terminal (UUID, title, or UUID prefix)
-                            Falls back to $GHOSTTY_SURFACE_UUID if not specified
-      --window              Use window-level metadata instead of surface-level
-      --resolved            Return window metadata overlaid by surface metadata (get only)
-      --replace             Replace metadata (PUT) instead of merge (PATCH)
-      --post                Use POST instead of PATCH for merges
-      --json                Output JSON
-      -h, --help            Show this help
+  static let help = commandHelp(
     """
+      Usage:
+        ghostmux metadata get -t <target> [--window] [--resolved] [--json]
+        ghostmux metadata set -t <target> '<json-object>' [--window] [--replace] [--post] [--json]
+        ghostmux metadata delete -t <target> [--window] [--json]
+
+      Options:
+        -t <target>           Target terminal (UUID, title, or UUID prefix)
+                              Falls back to $GHOSTTY_SURFACE_UUID if not specified
+        --window              Use window-level metadata instead of surface-level
+        --resolved            Return window metadata overlaid by surface metadata (get only)
+        --replace             Replace metadata (PUT) instead of merge (PATCH)
+        --post                Use POST instead of PATCH for merges
+        --json                Output JSON
+        -h, --help            Show this help
+    """)
 
   static func run(context: CommandContext) throws {
-    var target: String?
-    var positional: [String] = []
-    var json = false
-    var windowScope = false
-    var resolved = false
-    var replace = false
-    var post = false
-
-    var i = 0
-    while i < context.args.count {
-      let arg = context.args[i]
-      if arg == "-t", i + 1 < context.args.count {
-        target = context.args[i + 1]
-        i += 2
-        continue
-      }
-
-      if arg == "--window" {
-        windowScope = true
-        i += 1
-        continue
-      }
-
-      if arg == "--resolved" {
-        resolved = true
-        i += 1
-        continue
-      }
-
-      if arg == "--replace" {
-        replace = true
-        i += 1
-        continue
-      }
-
-      if arg == "--post" {
-        post = true
-        i += 1
-        continue
-      }
-
-      if arg == "--json" {
-        json = true
-        i += 1
-        continue
-      }
-
-      if arg == "-h" || arg == "--help" {
-        print(help)
-        return
-      }
-
-      positional.append(arg)
-      i += 1
+    let parsed = try parseCommandArguments(
+      context.args,
+      positionals: .collect,
+      booleanFlags: ["--window", "--resolved", "--replace", "--post"]
+    )
+    if parsed.help {
+      print(help)
+      return
     }
 
-    guard let subcommand = positional.first else {
+    guard let subcommand = parsed.positionals.first else {
       throw GhosttyError.message("metadata requires a subcommand: get, set, delete")
     }
 
     let terminals = try context.client.listTerminals()
     let policy: SurfaceResolutionPolicy = .regularTarget
-    let targetTerminal = try resolveSurfaceTarget(target, terminals: terminals, policy: policy)
+    let targetTerminal = try resolveSurfaceTarget(
+      parsed.target, terminals: terminals, policy: policy)
 
+    let windowScope = parsed.hasFlag("--window")
+    let resolved = parsed.hasFlag("--resolved")
+    let replace = parsed.hasFlag("--replace")
+    let post = parsed.hasFlag("--post")
     let scope = windowScope ? "window" : nil
-    let extraArgs = Array(positional.dropFirst())
+    let extraArgs = Array(parsed.positionals.dropFirst())
 
     switch subcommand {
     case "get":
@@ -102,7 +62,7 @@ struct MetadataCommand: GhostmuxCommand {
         scope: scope,
         resolved: resolved ? true : nil
       )
-      printMetadata(data, json: json)
+      printMetadata(data, json: parsed.json)
 
     case "set":
       if resolved {
@@ -128,7 +88,7 @@ struct MetadataCommand: GhostmuxCommand {
           method: method
         )
       }
-      if json {
+      if parsed.json {
         writeJSON(["data": responseData])
       }
 
@@ -144,7 +104,7 @@ struct MetadataCommand: GhostmuxCommand {
         terminalId: targetTerminal.id,
         scope: scope
       )
-      if json {
+      if parsed.json {
         writeJSON(["data": responseData])
       }
 

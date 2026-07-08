@@ -13,9 +13,13 @@ let package = Package(
             name: "GhosttyLib",
             path: "Sources/GhosttyLib"
         ),
+        .target(
+            name: "GhostmuxCommandParsing",
+            path: "Sources/GhostmuxCommandParsing"
+        ),
         .executableTarget(
             name: "ghostmux",
-            dependencies: ["GhosttyLib"],
+            dependencies: ["GhosttyLib", "GhostmuxCommandParsing"],
             path: "Sources/ghostmux"
         ),
         .executableTarget(
@@ -27,6 +31,11 @@ let package = Package(
             name: "GhosttyLibTests",
             dependencies: ["GhosttyLib"],
             path: "Tests/GhosttyLibTests"
+        ),
+        .testTarget(
+            name: "GhostmuxCommandParsingTests",
+            dependencies: ["GhostmuxCommandParsing"],
+            path: "Tests/GhostmuxCommandParsingTests"
         )
     ]
 )

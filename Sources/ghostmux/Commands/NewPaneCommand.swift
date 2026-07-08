@@ -4,7 +4,8 @@ import GhosttyLib
 struct NewPaneCommand: GhostmuxCommand {
   static let name = "new-pane"
   static let aliases = ["splitp", "split-pane"]
-  static let help = """
+  static let help = commandHelp(
+    """
     Usage:
       ghostmux new-pane [options]
 
@@ -29,71 +30,34 @@ struct NewPaneCommand: GhostmuxCommand {
       ghostmux new-pane -d down                   # Split down from focused pane
       ghostmux new-pane -t 550e8400 -d left       # Split left from specific pane
       ghostmux new-pane -d down --cwd /tmp        # Split down with working directory
-    """
+    """)
 
   static func run(context: CommandContext) throws {
-    var target: String?
     var direction = "right"
-    var workingDirectory: String?
-    var command: String?
     var env: [String: String] = [:]
-    var json = false
 
-    var i = 0
-    while i < context.args.count {
-      let arg = context.args[i]
+    let parsed = try parseCommandArguments(
+      context.args,
+      valueFlags: ["-d", "--direction", "--cwd", "--command", "--env"]
+    )
+    if parsed.help {
+      print(help)
+      return
+    }
 
-      if arg == "-t", i + 1 < context.args.count {
-        target = context.args[i + 1]
-        i += 2
-        continue
+    if let parsedDirection = parsed.value(forAny: ["-d", "--direction"]) {
+      direction = parsedDirection.lowercased()
+    }
+    for pair in parsed.values(for: "--env") {
+      guard let eqIndex = pair.firstIndex(of: "=") else {
+        throw GhosttyError.message("env must be in KEY=VALUE form")
       }
-
-      if arg == "-d" || arg == "--direction", i + 1 < context.args.count {
-        direction = context.args[i + 1].lowercased()
-        i += 2
-        continue
+      let key = String(pair[..<eqIndex])
+      let value = String(pair[pair.index(after: eqIndex)...])
+      if key.isEmpty {
+        throw GhosttyError.message("env key must be non-empty")
       }
-
-      if arg == "--cwd", i + 1 < context.args.count {
-        workingDirectory = context.args[i + 1]
-        i += 2
-        continue
-      }
-
-      if arg == "--command", i + 1 < context.args.count {
-        command = context.args[i + 1]
-        i += 2
-        continue
-      }
-
-      if arg == "--env", i + 1 < context.args.count {
-        let pair = context.args[i + 1]
-        guard let eqIndex = pair.firstIndex(of: "=") else {
-          throw GhosttyError.message("env must be in KEY=VALUE form")
-        }
-        let key = String(pair[..<eqIndex])
-        let value = String(pair[pair.index(after: eqIndex)...])
-        if key.isEmpty {
-          throw GhosttyError.message("env key must be non-empty")
-        }
-        env[key] = value
-        i += 2
-        continue
-      }
-
-      if arg == "--json" {
-        json = true
-        i += 1
-        continue
-      }
-
-      if arg == "-h" || arg == "--help" {
-        print(help)
-        return
-      }
-
-      throw GhosttyError.message("unexpected argument: \(arg)")
+      env[key] = value
     }
 
     // Validate direction
@@ -105,21 +69,21 @@ struct NewPaneCommand: GhostmuxCommand {
 
     let terminals = try context.client.listTerminals()
     let policy: SurfaceResolutionPolicy = .focusedTarget
-    let parentId = try resolveSurfaceTarget(target, terminals: terminals, policy: policy).id
+    let parentId = try resolveSurfaceTarget(parsed.target, terminals: terminals, policy: policy).id
 
     // Create the split
     let location = "split:\(direction)"
     let request = CreateTerminalRequest(
       location: location,
-      workingDirectory: workingDirectory,
-      command: command,
+      workingDirectory: parsed.value(for: "--cwd"),
+      command: parsed.value(for: "--command"),
       env: env.isEmpty ? nil : env,
       parent: parentId
     )
 
     let terminal = try context.client.createTerminal(request: request)
 
-    if json {
+    if parsed.json {
       writeJSON(terminal.toJsonDict())
       return
     }

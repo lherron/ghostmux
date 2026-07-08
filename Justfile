@@ -18,12 +18,16 @@ lint:
 check-suppressions:
     @bash Tests/suppression_guard.sh
 
+# Run focused parser tests that do not require a live Ghostty socket
+parser-test:
+    swift test --filter GhostmuxCommandParsingTests
+
 # Run the full local quality gate
 verify: verify-tests verify-command-surface verify-suppressions verify-smoke
     @echo "ghostmux verify OK"
 
 # Run build and formatting checks used by the local quality gate
-verify-tests: build lint
+verify-tests: build lint parser-test
 
 # Check documented command surface used by the local quality gate
 verify-command-surface: command-surface

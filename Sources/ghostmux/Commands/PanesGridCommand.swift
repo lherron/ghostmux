@@ -4,78 +4,47 @@ import GhosttyLib
 struct PanesGridCommand: GhostmuxCommand {
   static let name = "panes-grid"
   static let aliases = ["grid"]
-  static let help = """
-    Usage:
-      ghostmux panes-grid <columns>x<rows> [options]
-
-    Options:
-      -t, --target <id>   Target terminal to start from (UUID, title, or prefix)
-                          Falls back to $GHOSTTY_SURFACE_UUID if not specified
-      --cwd <path>  Initial working directory for all new panes
-      --json        Output JSON with all pane IDs
-      -h, --help    Show this help
-
-    Arguments:
-      <columns>x<rows>  Grid dimensions (e.g., 3x2 for 3 columns, 2 rows = 6 panes)
-
-    Examples:
-      ghostmux panes-grid 2x2                  # Create 2x2 grid (4 panes)
-      ghostmux panes-grid 3x2                  # Create 3x2 grid (6 panes)
-      ghostmux panes-grid 4x1                  # Create 4 horizontal panes
-      ghostmux panes-grid 1x3                  # Create 3 vertical panes
-      ghostmux panes-grid 3x2 --cwd /tmp       # Grid with working directory
+  static let help = commandHelp(
     """
+      Usage:
+        ghostmux panes-grid <columns>x<rows> [options]
+
+      Options:
+        -t, --target <id>   Target terminal to start from (UUID, title, or prefix)
+                            Falls back to $GHOSTTY_SURFACE_UUID if not specified
+        --cwd <path>  Initial working directory for all new panes
+        --json        Output JSON with all pane IDs
+        -h, --help    Show this help
+
+      Arguments:
+        <columns>x<rows>  Grid dimensions (e.g., 3x2 for 3 columns, 2 rows = 6 panes)
+
+      Examples:
+        ghostmux panes-grid 2x2                  # Create 2x2 grid (4 panes)
+        ghostmux panes-grid 3x2                  # Create 3x2 grid (6 panes)
+        ghostmux panes-grid 4x1                  # Create 4 horizontal panes
+        ghostmux panes-grid 1x3                  # Create 3 vertical panes
+        ghostmux panes-grid 3x2 --cwd /tmp       # Grid with working directory
+    """)
 
   static func run(context: CommandContext) throws {
-    var target: String?
-    var gridSpec: String?
-    var workingDirectory: String?
-    var json = false
-
-    var i = 0
-    while i < context.args.count {
-      let arg = context.args[i]
-
-      if arg == "-t" || arg == "--target", i + 1 < context.args.count {
-        target = context.args[i + 1]
-        i += 2
-        continue
-      }
-
-      if arg == "--cwd", i + 1 < context.args.count {
-        workingDirectory = context.args[i + 1]
-        i += 2
-        continue
-      }
-
-      if arg == "--json" {
-        json = true
-        i += 1
-        continue
-      }
-
-      if arg == "-h" || arg == "--help" {
-        print(help)
-        return
-      }
-
-      if arg.hasPrefix("-") {
-        throw GhosttyError.message("unexpected argument: \(arg)")
-      }
-
-      // Positional argument - should be grid spec
-      if gridSpec == nil {
-        gridSpec = arg
-        i += 1
-        continue
-      }
-
-      throw GhosttyError.message("unexpected argument: \(arg)")
+    let parsed = try parseCommandArguments(
+      context.args,
+      targetAliases: ["-t", "--target"],
+      positionals: .collect,
+      valueFlags: ["--cwd"]
+    )
+    if parsed.help {
+      print(help)
+      return
     }
 
     // Parse grid spec
-    guard let gridSpec else {
+    guard let gridSpec = parsed.positionals.first else {
       throw GhosttyError.message("panes-grid requires grid size (e.g., 3x2)")
+    }
+    if parsed.positionals.count > 1 {
+      throw GhosttyError.message("unexpected argument: \(parsed.positionals[1])")
     }
 
     let parts = gridSpec.lowercased().split(separator: "x")
@@ -93,7 +62,8 @@ struct PanesGridCommand: GhostmuxCommand {
 
     let terminals = try context.client.listTerminals()
     let policy: SurfaceResolutionPolicy = .focusedTarget
-    let startingId = try resolveSurfaceTarget(target, terminals: terminals, policy: policy).id
+    let startingId = try resolveSurfaceTarget(parsed.target, terminals: terminals, policy: policy)
+      .id
 
     // Build the grid
     // Strategy: Create rows first (vertical splits), then columns in each row (horizontal splits)
@@ -108,7 +78,7 @@ struct PanesGridCommand: GhostmuxCommand {
     for _ in 1..<rows {
       let request = CreateTerminalRequest(
         location: "split:down",
-        workingDirectory: workingDirectory,
+        workingDirectory: parsed.value(for: "--cwd"),
         command: nil,
         env: nil,
         parent: rowStarters.last
@@ -125,7 +95,7 @@ struct PanesGridCommand: GhostmuxCommand {
       for _ in 1..<columns {
         let request = CreateTerminalRequest(
           location: "split:right",
-          workingDirectory: workingDirectory,
+          workingDirectory: parsed.value(for: "--cwd"),
           command: nil,
           env: nil,
           parent: rowPanes.last
@@ -146,7 +116,7 @@ struct PanesGridCommand: GhostmuxCommand {
     // Output results
     let totalPanes = columns * rows
 
-    if json {
+    if parsed.json {
       let output: [String: Any] = [
         "columns": columns,
         "rows": rows,

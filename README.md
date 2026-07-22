@@ -40,9 +40,9 @@ ghostmux status
 
 # Create a new terminal (created in the background by default — focus is NOT moved)
 ghostmux new                              # New window (unfocused)
-ghostmux new --focus                      # New window, move focus to it
+ghostmux new --focus                      # New window, request focus
 ghostmux new --tab                        # New tab (unfocused)
-ghostmux new --tab --focus                # New tab, move focus to it
+ghostmux new --tab --focus                # New tab, request focus
 ghostmux new --cwd /path/to/dir           # With working directory
 ghostmux new --command "vim file.txt"     # Run command
 ghostmux new --title "My Terminal"        # With title

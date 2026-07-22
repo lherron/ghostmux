@@ -18,13 +18,13 @@ func commandHelp(_ raw: String) -> String {
   raw
 }
 
-func terminalSummary(_ terminal: Terminal) -> String {
+func terminalSummary(_ terminal: Terminal, includeFocusStatus: Bool = true) -> String {
   let name = NameGenerator.nameFromUUID(terminal.id)
   let shortId = String(terminal.id.prefix(8))
 
   var output = "Created pane: \(name) (\(shortId))"
 
-  if terminal.focused {
+  if includeFocusStatus && terminal.focused {
     output += " - now focused"
   }
 

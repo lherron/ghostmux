@@ -12,7 +12,7 @@ struct NewCommand: GhostmuxCommand {
       Options:
         --window              Create a new window (default)
         --tab                 Create a new tab
-        --focus               Focus the created terminal (default: do not focus)
+        --focus               Request focus for the created terminal
         --cwd <path>          Initial working directory
         --title <title>       Set terminal title after creation
         --command <cmd>       Command to run after shell init
@@ -22,7 +22,8 @@ struct NewCommand: GhostmuxCommand {
         -h, --help            Show this help
 
       By default the new terminal is created in the background without stealing
-      focus. Pass --focus to move focus to the created window/tab.
+      focus. Pass --focus to request focus for the created window/tab. Focus is
+      best-effort; query list-surfaces or the focused endpoint for current state.
 
       Examples:
         ghostmux new --title 'build: project' --tab --cwd /tmp
@@ -92,6 +93,7 @@ struct NewCommand: GhostmuxCommand {
 
     if parsed.json {
       var output = terminal.toJsonDict()
+      output.removeValue(forKey: "focused")
       if let titleResult {
         output["title_result"] = titleResult.resultName
         if let titleWarning = titleResult.warningMessage {
@@ -105,7 +107,7 @@ struct NewCommand: GhostmuxCommand {
       return
     }
 
-    print(terminalSummary(terminal))
+    print(terminalSummary(terminal, includeFocusStatus: false))
     if let titleWarning = titleResult?.warningMessage {
       fputs("warning: \(titleWarning)\n", stderr)
     }

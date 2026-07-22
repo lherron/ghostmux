@@ -64,6 +64,11 @@ cleanup() {
 }
 trap cleanup EXIT
 
+if [[ "$created" == *'"focused":'* ]]; then
+  echo "FAIL: ghostmux new must not report asynchronous focus status"
+  exit 1
+fi
+
 sleep 1
 "$BIN" send-keys -t "$target" C-g >/dev/null
 "$BIN" capture-pane -t "$target" >/dev/null

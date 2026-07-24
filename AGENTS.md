@@ -1,68 +1,50 @@
 # AGENTS.md
 
-Agent-facing router for ghostmux. Use this file to land in the right local
-context, then defer to the referenced source files for command details.
+Agent guide for ghostmux — a Swift CLI controlling
+[ScriptableGhostty](https://github.com/lherron/scriptable-ghostty) terminals over
+a Unix domain socket. Two executables: `ghostmux` (terminal control) and
+`ghostchat` (inter-agent messaging).
 
-## Context Map
+- `Justfile` is the authority for build, verify, install, hook, and smoke recipes (`just --list`).
+- `README.md` owns user-facing command examples; `Tests/command_surface_conformance.sh` compares README coverage with the live CLI registry and rejects stale command references in this file.
+- `docs/SUPPRESSION_GUARD.md` defines the reviewed exception format enforced by `just check-suppressions`.
+- `AGENT_ENABLEMENT_STATUS.md` is a generated projection (do not hand-edit); `AGENT_ENABLEMENT_RETRO.md` is the hand-maintained retro carrier.
 
-- `CLAUDE.md` is the compatible architecture and command guide for this repo.
-  Keep it aligned with this router when closeout expectations change.
-- `Justfile` is the authority for local build, verify, install, hook, and smoke
-  recipes.
-- `README.md` owns user-facing command examples. `Tests/command_surface_conformance.sh`
-  compares README command coverage with the live `ghostmux` CLI registry and
-  rejects stale `ghostmux <command>` references in this router.
-- `Tests/ghostmux_smoke.sh` is the runtime smoke used by `just test` and
-  `just verify`.
-- `docs/SUPPRESSION_GUARD.md` defines the reviewed exception format and the
-  suppression-cost guard enforced by `just check-suppressions`.
-- `AGENT_ENABLEMENT_STATUS.md` is the generated AE assessment/status projection.
-- `AGENT_ENABLEMENT_RETRO.md` is the hand-maintained retro carrier for
-  post-assessment enablement lessons and routing decisions.
-- Current agent-enablement remediation baseline: `af7f993..9c0ffab` added
-  `just verify`, repo-local hooks, command-surface conformance, explicit smoke
-  skip evidence, this router, and suppression-cost guard coverage.
+`just install` builds release binaries, materializes the repo hooks (which run
+`just verify` on pre-commit/pre-push), and installs `ghostmux` and `ghostchat`
+to `~/.local/bin/`.
 
-## Command Surface
+## Architecture
 
-- Build/typecheck: `just build`
-- Swift formatting lint: `just lint`
-- Command-surface guard: `just command-surface`
-- Suppression-cost guard: `just check-suppressions`
-- Full closeout gate: `just verify`
-- Materialize repo hooks: `just install-hooks`
-- Install real binaries: `just install`
-- Runtime smoke only: `just test`
+- **GhosttyLib** — shared library: `GhosttyClient` (UDS client), `Models`, `KeyStroke` parsing (special keys like C-c, Tab, modifier combos), `Utils` (target resolution, socket path, JSON output).
+- **ghostmux** — command-pattern CLI: each command is a struct conforming to `GhostmuxCommand` in `Sources/ghostmux/Commands/`, registered in the `commandTypes` array in `main.swift`.
+- **ghostchat** — messaging CLI; deterministic friendly names from UUIDs, protocol `[ghostchat:<sender-name>] <message>`.
 
-`just install` builds release binaries, runs `just install-hooks`, and installs
-`ghostmux` and `ghostchat` to `~/.local/bin/`.
+UDS protocol: 4-byte big-endian length prefix + JSON envelope (`version`,
+`method`, `path`, optional `query`/`body`); responses are length-prefixed JSON
+with `status` and `body`. API version `v2`. Socket path:
+`~/Library/Application Support/Ghostty/api.sock`, overridable via
+`GHOSTTY_API_SOCKET`.
 
 ## Runtime Smoke Contract
 
-ghostmux controls ScriptableGhostty through a Unix domain socket. Real runtime
-smoke requires ScriptableGhostty to expose the socket at
-`~/Library/Application Support/Ghostty/api.sock`, or a custom path named by
-`GHOSTTY_API_SOCKET`.
+Real runtime smoke (`Tests/ghostmux_smoke.sh`, run by `just test` and
+`just verify`) requires ScriptableGhostty to expose the socket. Interpret the
+output literally:
 
-Interpret smoke output literally:
-
-- `GHOSTMUX_SMOKE_RESULT=passed` means real terminal behavior was exercised.
-- `GHOSTMUX_SMOKE_RESULT=failed` means the required runtime check failed.
-- `GHOSTMUX_SMOKE_RESULT=skipped` is not a pass. It must include
-  `GHOSTMUX_SMOKE_SKIP_EVIDENCE=...` and is only acceptable when deliberately
-  running `GHOSTMUX_SMOKE_ALLOW_SKIP=1 just test` outside the closeout gate.
+- `GHOSTMUX_SMOKE_RESULT=passed` — real terminal behavior was exercised.
+- `GHOSTMUX_SMOKE_RESULT=failed` — a required runtime check failed.
+- `GHOSTMUX_SMOKE_RESULT=skipped` is **not a pass**. It must include `GHOSTMUX_SMOKE_SKIP_EVIDENCE=...` and is only acceptable when deliberately running `GHOSTMUX_SMOKE_ALLOW_SKIP=1 just test` outside the closeout gate.
 
 `just verify` forces `GHOSTMUX_SMOKE_ALLOW_SKIP=0`, so a missing Ghostty socket
-fails verification instead of producing green skip evidence.
+fails verification instead of producing green skip evidence. A skip is never
+acceptable closeout evidence for ghostmux changes.
 
 ## Closeout Route
 
-For code or runtime changes, run `just verify`, then `just install`, then smoke
-the installed binary from `~/.local/bin/` against real local configuration. At a
-minimum, confirm `~/.local/bin/ghostmux status` reaches ScriptableGhostty, and
-exercise any changed command path directly.
-
-For documentation-only changes, still run the relevant referenced recipes and
-path checks for every command or file named in the doc. Do not report a runtime
-smoke as passed unless `Tests/ghostmux_smoke.sh` emitted
-`GHOSTMUX_SMOKE_RESULT=passed`.
+For code or runtime changes: `just verify`, then `just install`, then smoke the
+installed binary from `~/.local/bin/` against real local configuration — at
+minimum confirm `~/.local/bin/ghostmux status` reaches ScriptableGhostty, and
+exercise any changed command path directly. For documentation-only changes,
+run the referenced recipes and path checks for every command or file named in
+the doc.

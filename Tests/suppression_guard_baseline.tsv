@@ -1,8 +1,6 @@
 # kind	ordinal	path	text	reason
-smoke-allow-skip	1	AGENTS.md	`just verify` forces `GHOSTMUX_SMOKE_ALLOW_SKIP=0`, so a missing Ghostty socket	SUPPRESSION-REVIEWED[T-05533]: agent router documents verify failing closed for smoke skips.
-smoke-allow-skip	1	AGENTS.md	running `GHOSTMUX_SMOKE_ALLOW_SKIP=1 just test` outside the closeout gate.	SUPPRESSION-REVIEWED[T-05533]: agent router documents the opt-in smoke skip escape hatch.
-smoke-allow-skip	1	CLAUDE.md	ScriptableGhostty is unavailable; use `GHOSTMUX_SMOKE_ALLOW_SKIP=1 just test`	SUPPRESSION-REVIEWED[T-05533]: Claude guidance documents the opt-in smoke skip escape hatch.
-smoke-allow-skip	1	CLAUDE.md	explicit non-passing skip. `just verify` forces `GHOSTMUX_SMOKE_ALLOW_SKIP=0`,	SUPPRESSION-REVIEWED[T-05533]: Claude guidance documents verify failing closed for smoke skips.
+smoke-allow-skip	1	AGENTS.md	`just verify` forces `GHOSTMUX_SMOKE_ALLOW_SKIP=0`, so a missing Ghostty socket	SUPPRESSION-REVIEWED[T-06913]: agent guide documents verify failing closed for smoke skips.
+smoke-allow-skip	1	AGENTS.md	- `GHOSTMUX_SMOKE_RESULT=skipped` is **not a pass**. It must include `GHOSTMUX_SMOKE_SKIP_EVIDENCE=...` and is only acceptable when deliberately running `GHOSTMUX_SMOKE_ALLOW_SKIP=1 just test` outside the closeout gate.	SUPPRESSION-REVIEWED[T-06913]: agent guide documents the opt-in smoke skip escape hatch.
 smoke-allow-skip	1	Justfile	@env GHOSTMUX_SMOKE_ALLOW_SKIP=0 bash Tests/ghostmux_smoke.sh	SUPPRESSION-REVIEWED[T-05533]: verify explicitly disables smoke skip success.
 smoke-allow-skip	1	README.md	- `GHOSTMUX_SMOKE_ALLOW_SKIP` - Set to `1` only for `just test` runs where	SUPPRESSION-REVIEWED[T-05533]: README documents the opt-in smoke skip escape hatch.
 smoke-allow-skip	1	Tests/ghostmux_smoke.sh	ALLOW_SKIP="${GHOSTMUX_SMOKE_ALLOW_SKIP:-0}"	SUPPRESSION-REVIEWED[T-05533]: smoke script reads the explicit skip escape hatch.

@@ -25,7 +25,53 @@ public final class GhosttyClient {
     return terminals.compactMap(parseTerminal)
   }
 
+  public func listWindows(metadataFilters: [String: String] = [:]) throws -> [Window] {
+    let query = Dictionary(
+      uniqueKeysWithValues: metadataFilters.map { ("meta.\($0.key)", $0.value) })
+    let response = try request(version: "v2", method: "GET", path: "/windows", query: query)
+    try checkWindowsResponse(response, collectionEndpoint: true)
+    guard let body = response.body,
+      let windows = body["windows"] as? [[String: Any]]
+    else {
+      return []
+    }
+    return windows.compactMap(parseWindow)
+  }
+
+  public func getWindow(windowId: String) throws -> Window {
+    let response = try request(version: "v2", method: "GET", path: "/windows/\(windowId)")
+    try checkWindowsResponse(response)
+    guard let body = response.body, let window = parseWindow(body) else {
+      throw GhosttyError.message("invalid window response")
+    }
+    return window
+  }
+
+  public func createWindow(request: CreateWindowRequest) throws -> CreateWindowResult {
+    let body = request.toBody()
+    guard JSONSerialization.isValidJSONObject(body) else {
+      throw GhosttyError.message("window metadata must contain valid JSON values")
+    }
+    let response = try self.request(
+      version: "v2",
+      method: "POST",
+      path: "/windows",
+      body: body
+    )
+    try checkWindowsResponse(response, collectionEndpoint: true)
+    guard let body = response.body,
+      let window = parseWindow(body),
+      let created = body["created"] as? Bool
+    else {
+      throw GhosttyError.message("invalid create window response")
+    }
+    return CreateWindowResult(window: window, created: created)
+  }
+
   public func createTerminal(request: CreateTerminalRequest) throws -> Terminal {
+    if let windowId = request.window {
+      _ = try getWindow(windowId: windowId)
+    }
     let response = try self.request(
       version: "v2",
       method: "POST",
@@ -287,6 +333,60 @@ public final class GhosttyClient {
     return response.body?["data"] as? [String: Any] ?? [:]
   }
 
+  public func getWindowMetadata(windowId: String) throws -> [String: Any] {
+    let response = try request(
+      version: "v2",
+      method: "GET",
+      path: "/windows/\(windowId)/metadata"
+    )
+    try checkWindowsResponse(response)
+    return response.body?["data"] as? [String: Any] ?? [:]
+  }
+
+  public func mergeWindowMetadata(
+    windowId: String,
+    data: [String: Any]
+  ) throws -> [String: Any] {
+    guard JSONSerialization.isValidJSONObject(data) else {
+      throw GhosttyError.message("metadata values must be valid JSON")
+    }
+    let response = try request(
+      version: "v2",
+      method: "PATCH",
+      path: "/windows/\(windowId)/metadata",
+      body: ["data": data]
+    )
+    try checkWindowsResponse(response)
+    return response.body?["data"] as? [String: Any] ?? [:]
+  }
+
+  public func replaceWindowMetadata(
+    windowId: String,
+    data: [String: Any]
+  ) throws -> [String: Any] {
+    guard JSONSerialization.isValidJSONObject(data) else {
+      throw GhosttyError.message("metadata values must be valid JSON")
+    }
+    let response = try request(
+      version: "v2",
+      method: "PUT",
+      path: "/windows/\(windowId)/metadata",
+      body: ["data": data]
+    )
+    try checkWindowsResponse(response)
+    return response.body?["data"] as? [String: Any] ?? [:]
+  }
+
+  public func deleteWindowMetadata(windowId: String) throws -> [String: Any] {
+    let response = try request(
+      version: "v2",
+      method: "DELETE",
+      path: "/windows/\(windowId)/metadata"
+    )
+    try checkWindowsResponse(response)
+    return response.body?["data"] as? [String: Any] ?? [:]
+  }
+
   public func getScreenContents(terminalId: String) throws -> String {
     let response = try request(
       version: "v2", method: "GET", path: "/terminals/\(terminalId)/screen")
@@ -425,6 +525,7 @@ public final class GhosttyClient {
 
     return Terminal(
       id: id,
+      windowId: dict["window_id"] as? String,
       title: title,
       workingDirectory: dict["working_directory"] as? String,
       focused: dict["focused"] as? Bool ?? false,
@@ -433,6 +534,46 @@ public final class GhosttyClient {
       cellWidth: dict["cell_width"] as? Int,
       cellHeight: dict["cell_height"] as? Int
     )
+  }
+
+  private func parseWindow(_ dict: [String: Any]) -> Window? {
+    guard let id = dict["id"] as? String,
+      let title = dict["title"] as? String,
+      let terminalIds = dict["terminal_ids"] as? [String]
+    else {
+      return nil
+    }
+
+    return Window(
+      id: id,
+      title: title,
+      focused: dict["focused"] as? Bool ?? false,
+      terminalIds: terminalIds,
+      metadata: dict["metadata"] as? [String: Any] ?? [:]
+    )
+  }
+
+  private func checkWindowsResponse(
+    _ response: UDSResponse,
+    collectionEndpoint: Bool = false
+  ) throws {
+    guard response.status == 200 else {
+      if Self.isWindowsAPIUnavailable(response, collectionEndpoint: collectionEndpoint) {
+        throw GhosttyError.message(
+          "server does not support the windows API; update ScriptableGhostty")
+      }
+      throw GhosttyError.apiError(response.status, response.bodyError)
+    }
+  }
+
+  static func isWindowsAPIUnavailable(
+    _ response: UDSResponse,
+    collectionEndpoint: Bool
+  ) -> Bool {
+    guard response.status == 404 else { return false }
+    if collectionEndpoint { return true }
+    if response.body?["error"] as? String == "not_found" { return true }
+    return response.bodyError?.contains("Endpoint not found") ?? false
   }
 
 }

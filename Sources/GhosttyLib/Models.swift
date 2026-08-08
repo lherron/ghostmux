@@ -2,6 +2,7 @@ import Foundation
 
 public struct Terminal {
   public let id: String
+  public let windowId: String?
   public let title: String
   public let workingDirectory: String?
   public let focused: Bool
@@ -12,6 +13,7 @@ public struct Terminal {
 
   public init(
     id: String,
+    windowId: String? = nil,
     title: String,
     workingDirectory: String? = nil,
     focused: Bool = false,
@@ -21,6 +23,7 @@ public struct Terminal {
     cellHeight: Int? = nil
   ) {
     self.id = id
+    self.windowId = windowId
     self.title = title
     self.workingDirectory = workingDirectory
     self.focused = focused
@@ -28,6 +31,44 @@ public struct Terminal {
     self.rows = rows
     self.cellWidth = cellWidth
     self.cellHeight = cellHeight
+  }
+}
+
+public struct Window {
+  public let id: String
+  public let title: String
+  public let focused: Bool
+  public let terminalIds: [String]
+  public let metadata: [String: Any]
+
+  public init(
+    id: String,
+    title: String,
+    focused: Bool,
+    terminalIds: [String],
+    metadata: [String: Any]
+  ) {
+    self.id = id
+    self.title = title
+    self.focused = focused
+    self.terminalIds = terminalIds
+    self.metadata = metadata
+  }
+}
+
+public struct CreateWindowResult {
+  public let window: Window
+  public let created: Bool
+
+  public init(window: Window, created: Bool) {
+    self.window = window
+    self.created = created
+  }
+
+  public func toJsonDict() -> [String: Any] {
+    var dict = window.toJsonDict()
+    dict["created"] = created
+    return dict
   }
 }
 
@@ -94,6 +135,7 @@ public struct CreateTerminalRequest {
   public var command: String?
   public var env: [String: String]?
   public var parent: String?
+  public var window: String?
   /// Whether to focus/activate the created terminal. nil omits the field, letting
   /// the backend apply its default (focusing) for backward compatibility.
   public var focus: Bool?
@@ -104,6 +146,7 @@ public struct CreateTerminalRequest {
     command: String? = nil,
     env: [String: String]? = nil,
     parent: String? = nil,
+    window: String? = nil,
     focus: Bool? = nil
   ) {
     self.location = location
@@ -111,6 +154,7 @@ public struct CreateTerminalRequest {
     self.command = command
     self.env = env
     self.parent = parent
+    self.window = window
     self.focus = focus
   }
 
@@ -130,6 +174,58 @@ public struct CreateTerminalRequest {
     }
     if let parent {
       body["parent"] = parent
+    }
+    if let window {
+      body["window"] = window
+    }
+    if let focus {
+      body["focus"] = focus
+    }
+    return body
+  }
+}
+
+public struct CreateWindowRequest {
+  public var metadata: [String: Any]?
+  public var findOrCreateBy: [String: Any]?
+  public var workingDirectory: String?
+  public var command: String?
+  public var env: [String: String]?
+  /// Whether to focus/activate the created window. nil lets the backend choose.
+  public var focus: Bool?
+
+  public init(
+    metadata: [String: Any]? = nil,
+    findOrCreateBy: [String: Any]? = nil,
+    workingDirectory: String? = nil,
+    command: String? = nil,
+    env: [String: String]? = nil,
+    focus: Bool? = nil
+  ) {
+    self.metadata = metadata
+    self.findOrCreateBy = findOrCreateBy
+    self.workingDirectory = workingDirectory
+    self.command = command
+    self.env = env
+    self.focus = focus
+  }
+
+  public func toBody() -> [String: Any] {
+    var body: [String: Any] = [:]
+    if let metadata {
+      body["metadata"] = metadata
+    }
+    if let findOrCreateBy {
+      body["find_or_create_by"] = findOrCreateBy
+    }
+    if let workingDirectory {
+      body["working_directory"] = workingDirectory
+    }
+    if let command {
+      body["command"] = command
+    }
+    if let env {
+      body["env"] = env
     }
     if let focus {
       body["focus"] = focus
@@ -164,6 +260,9 @@ extension Terminal {
     if let workingDirectory {
       dict["working_directory"] = workingDirectory
     }
+    if let windowId {
+      dict["window_id"] = windowId
+    }
     if let columns {
       dict["columns"] = columns
     }
@@ -177,5 +276,17 @@ extension Terminal {
       dict["cell_height"] = cellHeight
     }
     return dict
+  }
+}
+
+extension Window {
+  public func toJsonDict() -> [String: Any] {
+    [
+      "id": id,
+      "title": title,
+      "focused": focused,
+      "terminal_ids": terminalIds,
+      "metadata": metadata,
+    ]
   }
 }

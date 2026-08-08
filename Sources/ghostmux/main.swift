@@ -10,6 +10,7 @@ private let usage = """
 
   Commands:
     list-surfaces, list-sessions, ls  List all terminals
+    list-windows          List managed windows, optionally filtered by metadata
     status                Check Ghostty API availability
     new, new-surface      Create a new terminal window or tab
     new-pane, splitp, split-pane  Create a new pane by splitting (requires -t or $GHOSTTY_SURFACE_UUID)
@@ -25,7 +26,7 @@ private let usage = """
     attach-host-session   Bind a surface to an Animata host session (requires -t)
     set-title             Set terminal title (requires -t)
     statusbar             Control the programmable status bar (requires -t)
-    metadata              Get/set terminal metadata (requires -t)
+    metadata              Get/set terminal or managed-window metadata
     capture-pane, capturep  Capture pane contents (visible only by default)
     screenshot, shot      Capture a terminal screenshot as PNG (requires target or $GHOSTTY_SURFACE_UUID)
     stream-surface, stream  Stream raw PTY output in real-time (requires -t)
@@ -59,6 +60,7 @@ private let usage = """
 
 private let commandTypes: [GhostmuxCommand.Type] = [
   ListSessionsCommand.self,
+  ListWindowsCommand.self,
   StatusCommand.self,
   NewCommand.self,
   NewPaneCommand.self,

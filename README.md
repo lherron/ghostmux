@@ -35,6 +35,10 @@ ghostmux communicates with ScriptableGhostty via a Unix Domain Socket at `~/Libr
 # List all terminal surfaces
 ghostmux list-surfaces
 
+# List first-class managed windows (repeat --meta for AND-equality filtering)
+ghostmux list-windows --json
+ghostmux list-windows --meta role=console --meta active=true --json
+
 # Check API availability
 ghostmux status
 
@@ -46,6 +50,10 @@ ghostmux new --tab --focus                # New tab, request focus
 ghostmux new --cwd /path/to/dir           # With working directory
 ghostmux new --command "vim file.txt"     # Run command
 ghostmux new --title "My Terminal"        # With title
+ghostmux new --tab --window-id <window-id> # New tab in a managed window
+ghostmux new --window --metadata '{"role":"console"}' --json
+ghostmux new --window --metadata '{"role":"console"}' \
+  --find-or-create-by '{"role":"console"}' --json
 
 # Create and arrange panes
 ghostmux new-pane -d right                # Split from focused pane
@@ -87,6 +95,9 @@ ghostmux statusbar show -t <target>
 ghostmux metadata get -t <target>
 ghostmux metadata set -t <target> '{"key":"value"}'
 ghostmux metadata delete -t <target>
+ghostmux metadata get --window-id <window-id>
+ghostmux metadata set --window-id <window-id> '{"key":"value"}'
+ghostmux metadata delete --window-id <window-id>
 
 # Capture terminal content
 ghostmux capture-pane <target>            # Full scrollback
@@ -125,8 +136,15 @@ Most commands support `--json` for machine-readable output:
 
 ```bash
 ghostmux list-surfaces --json
+ghostmux list-windows --json
 ghostmux new --json
 ```
+
+`new --window --json` uses the managed-windows API and includes `created` in
+its output. With `--find-or-create-by`, a miss returns `created: true`; a hit
+returns the oldest matching window with `created: false` and leaves its metadata
+unchanged. `--window-id` addresses first-class tab-group metadata; the older
+`metadata --window -t <target>` form remains the separate per-tab-window scope.
 
 ## Environment Variables
 

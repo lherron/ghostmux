@@ -26,6 +26,23 @@ with `status` and `body`. API version `v2`. Socket path:
 `~/Library/Application Support/Ghostty/api.sock`, overridable via
 `GHOSTTY_API_SOCKET`.
 
+## Reading Focus From Outside the Terminal
+
+Focus is live state, not history. Both facts below are load-bearing for anything
+that reads which terminal the user was in — quick-capture bars, launchers,
+overlays:
+
+- **Focus is only reported while ScriptableGhostty is the active app.** The
+  instant another app takes key focus (an overlay panel, Hammerspoon, Spotlight),
+  `ghostmux list-windows --json` and `ghostmux list-surfaces --json` report
+  `focused: false` for *everything*. There is no last-focused fallback. Snapshot
+  the originating window and working directory **before** stealing focus, never
+  after.
+- **Frontmost-app checks must match `com.lherron.scriptableghostty`**
+  (`~/Applications/ScriptableGhostty.app`). Upstream's `Ghostty.app` in
+  `/Applications` carries `com.mitchellh.ghostty`, so a check that matches only
+  the upstream id never fires and degrades silently to "no terminal context".
+
 ## Runtime Smoke Contract
 
 Real runtime smoke (`Tests/ghostmux_smoke.sh`, run by `just test` and

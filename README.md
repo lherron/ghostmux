@@ -39,6 +39,13 @@ ghostmux list-surfaces
 ghostmux list-windows --json
 ghostmux list-windows --meta role=console --meta active=true --json
 
+# List panes sharing the current surface's native tab
+ghostmux list-tabs
+ghostmux list-tabs -t <surface> --json
+
+# List panes across every tab in a managed window
+ghostmux list-tabs --window-id <window-id>
+
 # Check API availability
 ghostmux status
 
@@ -57,6 +64,7 @@ ghostmux new --window --metadata '{"role":"console"}' \
 
 # Create and arrange panes
 ghostmux new-pane -d right                # Split from focused pane
+ghostmux new-pane -d right --no-focus     # Split without moving keyboard focus
 ghostmux panes-grid 3x2                   # Create a 3x2 grid
 ghostmux get-pane-size -t <target>        # Get pane dimensions
 ghostmux resize-pane -t <target> -d right -a 100
@@ -137,6 +145,7 @@ Most commands support `--json` for machine-readable output:
 ```bash
 ghostmux list-surfaces --json
 ghostmux list-windows --json
+ghostmux list-tabs -t <surface> --json
 ghostmux new --json
 ```
 

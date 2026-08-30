@@ -36,24 +36,46 @@ final class WindowAPITests: XCTestCase {
   }
 
   func testWindowJSONSurfacesCreationOutcomeAndIdentity() {
+    let tabs = [
+      Tab(
+        id: "tab-1",
+        title: "Console",
+        selected: true,
+        focused: false,
+        terminalIds: ["terminal-1", "terminal-2"]
+      )
+    ]
     let window = Window(
       id: "window-1",
       title: "Console",
       focused: false,
       terminalIds: ["terminal-1", "terminal-2"],
-      metadata: ["role": "console"]
+      metadata: ["role": "console"],
+      tabs: tabs
     )
     let output = CreateWindowResult(window: window, created: false).toJsonDict()
 
     XCTAssertEqual(output["id"] as? String, "window-1")
     XCTAssertEqual(output["terminal_ids"] as? [String], ["terminal-1", "terminal-2"])
+    let outputTabs = output["tabs"] as? [[String: Any]]
+    XCTAssertEqual(outputTabs?.first?["id"] as? String, "tab-1")
+    XCTAssertEqual(
+      outputTabs?.first?["terminal_ids"] as? [String],
+      ["terminal-1", "terminal-2"]
+    )
     XCTAssertEqual(output["created"] as? Bool, false)
   }
 
   func testTerminalJSONIncludesManagedWindowIdentityWhenPresent() {
-    let terminal = Terminal(id: "terminal-1", windowId: "window-1", title: "shell")
+    let terminal = Terminal(
+      id: "terminal-1",
+      windowId: "window-1",
+      tabId: "tab-1",
+      title: "shell"
+    )
 
     XCTAssertEqual(terminal.toJsonDict()["window_id"] as? String, "window-1")
+    XCTAssertEqual(terminal.toJsonDict()["tab_id"] as? String, "tab-1")
   }
 
   func testWindowsAPIUnsupportedClassificationDistinguishesMissingWindow() {

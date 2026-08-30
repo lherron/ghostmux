@@ -11,6 +11,7 @@ private let usage = """
   Commands:
     list-surfaces, list-sessions, ls  List all terminals
     list-windows          List managed windows, optionally filtered by metadata
+    list-tabs             List panes sharing a native tab or managed window
     status                Check Ghostty API availability
     new, new-surface      Create a new terminal window or tab
     new-pane, splitp, split-pane  Create a new pane by splitting (requires -t or $GHOSTTY_SURFACE_UUID)
@@ -39,6 +40,7 @@ private let usage = """
 
   Examples:
     ghostmux list-surfaces
+    ghostmux list-tabs -t 550e8400
     ghostmux status
     ghostmux new --tab --cwd /tmp
     ghostmux new --title 'build: project' --cwd /path
@@ -61,6 +63,7 @@ private let usage = """
 private let commandTypes: [GhostmuxCommand.Type] = [
   ListSessionsCommand.self,
   ListWindowsCommand.self,
+  ListTabsCommand.self,
   StatusCommand.self,
   NewCommand.self,
   NewPaneCommand.self,

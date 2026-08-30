@@ -16,6 +16,7 @@ struct NewPaneCommand: GhostmuxCommand {
       --cwd <path>          Initial working directory for new pane
       --command <cmd>       Command to run after shell init
       --env <k=v>           Environment variable (repeatable)
+      --no-focus            Create the pane without moving keyboard focus
       --json                Output JSON
       -h, --help            Show this help
 
@@ -30,6 +31,7 @@ struct NewPaneCommand: GhostmuxCommand {
       ghostmux new-pane -d down                   # Split down from focused pane
       ghostmux new-pane -t 550e8400 -d left       # Split left from specific pane
       ghostmux new-pane -d down --cwd /tmp        # Split down with working directory
+      ghostmux new-pane -d right --no-focus       # Split without stealing focus
     """)
 
   static func run(context: CommandContext) throws {
@@ -38,6 +40,7 @@ struct NewPaneCommand: GhostmuxCommand {
 
     let parsed = try parseCommandArguments(
       context.args,
+      booleanFlags: ["--no-focus"],
       valueFlags: ["-d", "--direction", "--cwd", "--command", "--env"]
     )
     if parsed.help {
@@ -78,7 +81,8 @@ struct NewPaneCommand: GhostmuxCommand {
       workingDirectory: parsed.value(for: "--cwd"),
       command: parsed.value(for: "--command"),
       env: env.isEmpty ? nil : env,
-      parent: parentId
+      parent: parentId,
+      focus: parsed.hasFlag("--no-focus") ? false : nil
     )
 
     let terminal = try context.client.createTerminal(request: request)

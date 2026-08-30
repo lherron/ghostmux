@@ -3,6 +3,7 @@ import Foundation
 public struct Terminal {
   public let id: String
   public let windowId: String?
+  public let tabId: String?
   public let title: String
   public let workingDirectory: String?
   public let focused: Bool
@@ -14,6 +15,7 @@ public struct Terminal {
   public init(
     id: String,
     windowId: String? = nil,
+    tabId: String? = nil,
     title: String,
     workingDirectory: String? = nil,
     focused: Bool = false,
@@ -24,6 +26,7 @@ public struct Terminal {
   ) {
     self.id = id
     self.windowId = windowId
+    self.tabId = tabId
     self.title = title
     self.workingDirectory = workingDirectory
     self.focused = focused
@@ -34,25 +37,50 @@ public struct Terminal {
   }
 }
 
+public struct Tab {
+  public let id: String
+  public let title: String
+  public let selected: Bool
+  public let focused: Bool
+  public let terminalIds: [String]
+
+  public init(
+    id: String,
+    title: String,
+    selected: Bool,
+    focused: Bool,
+    terminalIds: [String]
+  ) {
+    self.id = id
+    self.title = title
+    self.selected = selected
+    self.focused = focused
+    self.terminalIds = terminalIds
+  }
+}
+
 public struct Window {
   public let id: String
   public let title: String
   public let focused: Bool
   public let terminalIds: [String]
   public let metadata: [String: Any]
+  public let tabs: [Tab]
 
   public init(
     id: String,
     title: String,
     focused: Bool,
     terminalIds: [String],
-    metadata: [String: Any]
+    metadata: [String: Any],
+    tabs: [Tab] = []
   ) {
     self.id = id
     self.title = title
     self.focused = focused
     self.terminalIds = terminalIds
     self.metadata = metadata
+    self.tabs = tabs
   }
 }
 
@@ -263,6 +291,9 @@ extension Terminal {
     if let windowId {
       dict["window_id"] = windowId
     }
+    if let tabId {
+      dict["tab_id"] = tabId
+    }
     if let columns {
       dict["columns"] = columns
     }
@@ -279,6 +310,18 @@ extension Terminal {
   }
 }
 
+extension Tab {
+  public func toJsonDict() -> [String: Any] {
+    [
+      "id": id,
+      "title": title,
+      "selected": selected,
+      "focused": focused,
+      "terminal_ids": terminalIds,
+    ]
+  }
+}
+
 extension Window {
   public func toJsonDict() -> [String: Any] {
     [
@@ -286,6 +329,7 @@ extension Window {
       "title": title,
       "focused": focused,
       "terminal_ids": terminalIds,
+      "tabs": tabs.map { $0.toJsonDict() },
       "metadata": metadata,
     ]
   }

@@ -526,6 +526,7 @@ public final class GhosttyClient {
     return Terminal(
       id: id,
       windowId: dict["window_id"] as? String,
+      tabId: dict["tab_id"] as? String,
       title: title,
       workingDirectory: dict["working_directory"] as? String,
       focused: dict["focused"] as? Bool ?? false,
@@ -549,7 +550,25 @@ public final class GhosttyClient {
       title: title,
       focused: dict["focused"] as? Bool ?? false,
       terminalIds: terminalIds,
-      metadata: dict["metadata"] as? [String: Any] ?? [:]
+      metadata: dict["metadata"] as? [String: Any] ?? [:],
+      tabs: (dict["tabs"] as? [[String: Any]] ?? []).compactMap(parseTab)
+    )
+  }
+
+  private func parseTab(_ dict: [String: Any]) -> Tab? {
+    guard let id = dict["id"] as? String,
+      let title = dict["title"] as? String,
+      let terminalIds = dict["terminal_ids"] as? [String]
+    else {
+      return nil
+    }
+
+    return Tab(
+      id: id,
+      title: title,
+      selected: dict["selected"] as? Bool ?? false,
+      focused: dict["focused"] as? Bool ?? false,
+      terminalIds: terminalIds
     )
   }
 

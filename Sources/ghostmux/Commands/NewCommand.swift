@@ -20,6 +20,7 @@ struct NewCommand: GhostmuxCommand {
         --cwd <path>          Initial working directory
         --title <title>       Set terminal title after creation
         --command <cmd>       Command to run after shell init
+        --keep-open           Hold the terminal open after --command exits
         --env <k=v>           Environment variable (repeatable)
         --parent <id>         Parent terminal UUID (for tabs)
         --json                Output JSON
@@ -29,6 +30,12 @@ struct NewCommand: GhostmuxCommand {
       focus. Pass --focus to request focus for the created window/tab. Focus is
       best-effort; query list-surfaces or the focused endpoint for current state.
 
+      --keep-open requires --command. After the command exits the terminal stays
+      open, prints its exit status, and drops to an interactive shell so the
+      scrollback is readable. Note that the surface then no longer disappears on
+      command completion, so a caller polling for it to vanish as a completion
+      signal will wait forever.
+
       Examples:
         ghostmux new --title 'build: project' --tab --cwd /tmp
         ghostmux new --tab --window-id 550e8400-e29b-41d4-a716-446655440000
@@ -36,6 +43,7 @@ struct NewCommand: GhostmuxCommand {
         ghostmux new --window --metadata '{"role":"console"}' \\
           --find-or-create-by '{"role":"console"}' --json
         ghostmux new --focus
+        ghostmux new --tab --command 'make' --keep-open
     """)
 
   static func run(context: CommandContext) throws {
@@ -46,7 +54,7 @@ struct NewCommand: GhostmuxCommand {
     let parsed = try parseCommandArguments(
       context.args,
       targetAliases: [],
-      booleanFlags: ["--window", "--tab", "--focus"],
+      booleanFlags: ["--window", "--tab", "--focus", "--keep-open"],
       valueFlags: [
         "--cwd", "--title", "--command", "--env", "--parent", "--window-id", "--metadata",
         "--find-or-create-by",
@@ -115,7 +123,7 @@ struct NewCommand: GhostmuxCommand {
         metadata: metadata,
         findOrCreateBy: findOrCreateBy,
         workingDirectory: parsed.value(for: "--cwd"),
-        command: parsed.value(for: "--command"),
+        command: try resolvedCommand(parsed),
         env: env.isEmpty ? nil : env,
         focus: focus
       )
@@ -161,7 +169,7 @@ struct NewCommand: GhostmuxCommand {
     let request = CreateTerminalRequest(
       location: location,
       workingDirectory: parsed.value(for: "--cwd"),
-      command: parsed.value(for: "--command"),
+      command: try resolvedCommand(parsed),
       env: env.isEmpty ? nil : env,
       parent: parent,
       window: windowId,

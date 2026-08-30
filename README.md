@@ -56,6 +56,7 @@ ghostmux new --tab                        # New tab (unfocused)
 ghostmux new --tab --focus                # New tab, request focus
 ghostmux new --cwd /path/to/dir           # With working directory
 ghostmux new --command "vim file.txt"     # Run command
+ghostmux new --tab --command "make" --keep-open  # Hold open after the command exits
 ghostmux new --title "My Terminal"        # With title
 ghostmux new --tab --window-id <window-id> # New tab in a managed window
 ghostmux new --window --metadata '{"role":"console"}' --json
@@ -65,6 +66,7 @@ ghostmux new --window --metadata '{"role":"console"}' \
 # Create and arrange panes
 ghostmux new-pane -d right                # Split from focused pane
 ghostmux new-pane -d right --no-focus     # Split without moving keyboard focus
+ghostmux new-pane --command "make" --keep-open   # Hold the pane open to read the exit status
 ghostmux panes-grid 3x2                   # Create a 3x2 grid
 ghostmux get-pane-size -t <target>        # Get pane dimensions
 ghostmux resize-pane -t <target> -d right -a 100

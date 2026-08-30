@@ -17,6 +17,7 @@ struct NewPaneCommand: GhostmuxCommand {
       --command <cmd>       Command to run after shell init
       --env <k=v>           Environment variable (repeatable)
       --no-focus            Create the pane without moving keyboard focus
+      --keep-open           Hold the pane open after --command exits
       --json                Output JSON
       -h, --help            Show this help
 
@@ -26,12 +27,20 @@ struct NewPaneCommand: GhostmuxCommand {
       up      Split vertically, new pane above
       down    Split vertically, new pane below
 
+    Keep open:
+      --keep-open requires --command. After the command exits the pane stays
+      open, prints its exit status, and drops to an interactive shell so the
+      scrollback is readable. Note that the pane then no longer disappears on
+      command completion, so a caller polling for the surface to vanish as a
+      completion signal will wait forever.
+
     Examples:
       ghostmux new-pane                           # Split right from focused pane
       ghostmux new-pane -d down                   # Split down from focused pane
       ghostmux new-pane -t 550e8400 -d left       # Split left from specific pane
       ghostmux new-pane -d down --cwd /tmp        # Split down with working directory
       ghostmux new-pane -d right --no-focus       # Split without stealing focus
+      ghostmux new-pane --command 'make' --keep-open  # Hold the pane after exit
     """)
 
   static func run(context: CommandContext) throws {
@@ -40,7 +49,7 @@ struct NewPaneCommand: GhostmuxCommand {
 
     let parsed = try parseCommandArguments(
       context.args,
-      booleanFlags: ["--no-focus"],
+      booleanFlags: ["--no-focus", "--keep-open"],
       valueFlags: ["-d", "--direction", "--cwd", "--command", "--env"]
     )
     if parsed.help {
@@ -79,7 +88,7 @@ struct NewPaneCommand: GhostmuxCommand {
     let request = CreateTerminalRequest(
       location: location,
       workingDirectory: parsed.value(for: "--cwd"),
-      command: parsed.value(for: "--command"),
+      command: try resolvedCommand(parsed),
       env: env.isEmpty ? nil : env,
       parent: parentId,
       focus: parsed.hasFlag("--no-focus") ? false : nil

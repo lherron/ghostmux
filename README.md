@@ -101,6 +101,10 @@ ghostmux statusbar set -t <target> "Status|Center|Right"
 ghostmux statusbar hide -t <target>
 ghostmux statusbar show -t <target>
 
+# Second status bar (renders under the primary one, independent visibility)
+ghostmux statusbar set -t <target> --bar secondary "L2|C2|R2"
+ghostmux statusbar get -t <target> --bar secondary --json
+
 # Manage metadata
 ghostmux metadata get -t <target>
 ghostmux metadata set -t <target> '{"key":"value"}'

@@ -172,8 +172,10 @@ public final class GhosttyClient {
     }
   }
 
-  public func setStatusBar(
-    terminalId: String,
+  /// Builds the `POST /terminals/{id}/statusbar` body. `bar` rides along only when a
+  /// non-default slot is addressed, so primary-bar requests stay byte-identical to what
+  /// Ghostty builds without a second slot already accept.
+  static func statusBarRequestBody(
     left: String? = nil,
     center: String? = nil,
     right: String? = nil,
@@ -181,8 +183,9 @@ public final class GhosttyClient {
     toggle: Bool? = nil,
     scope: String? = nil,
     fg: String? = nil,
-    bg: String? = nil
-  ) throws {
+    bg: String? = nil,
+    bar: String? = nil
+  ) -> [String: Any] {
     var body: [String: Any] = [:]
     if let left { body["left"] = left }
     if let center { body["center"] = center }
@@ -192,7 +195,43 @@ public final class GhosttyClient {
     if let scope { body["scope"] = scope }
     if let fg { body["fg"] = fg }
     if let bg { body["bg"] = bg }
-    if body.isEmpty {
+    if let bar { body["bar"] = bar }
+    return body
+  }
+
+  /// Builds the `GET /terminals/{id}/statusbar` query, with the same omit-when-default
+  /// rule as the request body.
+  static func statusBarQuery(scope: String? = nil, bar: String? = nil) -> [String: String] {
+    var query: [String: String] = [:]
+    if let scope { query["scope"] = scope }
+    if let bar { query["bar"] = bar }
+    return query
+  }
+
+  public func setStatusBar(
+    terminalId: String,
+    left: String? = nil,
+    center: String? = nil,
+    right: String? = nil,
+    visible: Bool? = nil,
+    toggle: Bool? = nil,
+    scope: String? = nil,
+    fg: String? = nil,
+    bg: String? = nil,
+    bar: String? = nil
+  ) throws {
+    let body = Self.statusBarRequestBody(
+      left: left,
+      center: center,
+      right: right,
+      visible: visible,
+      toggle: toggle,
+      scope: scope,
+      fg: fg,
+      bg: bg,
+      bar: bar
+    )
+    if body.isEmpty || body.keys.allSatisfy({ $0 == "scope" || $0 == "bar" }) {
       throw GhosttyError.message("statusbar update requires at least one field")
     }
 
@@ -212,16 +251,14 @@ public final class GhosttyClient {
 
   public func getStatusBar(
     terminalId: String,
-    scope: String? = nil
+    scope: String? = nil,
+    bar: String? = nil
   ) throws -> StatusBarInfo {
-    var query: [String: String] = [:]
-    if let scope { query["scope"] = scope }
-
     let response = try request(
       version: "v2",
       method: "GET",
       path: "/terminals/\(terminalId)/statusbar",
-      query: query
+      query: Self.statusBarQuery(scope: scope, bar: bar)
     )
     guard response.status == 200 else {
       throw GhosttyError.apiError(response.status, response.bodyError)
@@ -236,7 +273,8 @@ public final class GhosttyClient {
       visible: body["visible"] as? Bool ?? false,
       fg: body["fg"] as? String,
       bg: body["bg"] as? String,
-      scope: body["scope"] as? String ?? "surface"
+      scope: body["scope"] as? String ?? "surface",
+      bar: body["bar"] as? String
     )
   }
 

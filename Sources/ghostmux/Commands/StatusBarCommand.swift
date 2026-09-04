@@ -13,6 +13,7 @@ struct StatusBarCommand: GhostmuxCommand {
         ghostmux statusbar show -t <target>
         ghostmux statusbar hide -t <target>
         ghostmux statusbar toggle -t <target>
+        ghostmux statusbar set -t <target> --bar secondary "left|center|right"
 
         Note: "show" makes the bar visible; "get" reads back the configured spec
         (left/center/right text, fg, bg, visible state).
@@ -23,6 +24,9 @@ struct StatusBarCommand: GhostmuxCommand {
         -t <target>           Target terminal (UUID, title, or UUID prefix)
                               Falls back to $GHOSTTY_SURFACE_UUID if not specified
         --window              Apply to window fallback instead of surface
+        --bar <slot>          Status bar slot: primary (default) or secondary.
+                              The secondary bar renders under the primary one and
+                              has independent visibility.
         --fg <color>          Foreground (text) color
         --bg <color>          Background color
         --json                Output JSON
@@ -42,7 +46,7 @@ struct StatusBarCommand: GhostmuxCommand {
       context.args,
       positionals: .collect,
       booleanFlags: ["--window"],
-      valueFlags: ["--fg", "--bg"],
+      valueFlags: ["--fg", "--bg", "--bar"],
       flagLikePositionals: true
     )
     if parsed.help {
@@ -54,6 +58,8 @@ struct StatusBarCommand: GhostmuxCommand {
       throw GhosttyError.message("statusbar requires a subcommand: set, show, hide, or toggle")
     }
 
+    let slot = try parsed.value(for: "--bar").map(StatusBarSlot.require) ?? .defaultSlot
+
     let terminals = try context.client.listTerminals()
     let policy: SurfaceResolutionPolicy = .regularTarget
     let targetTerminal = try resolveSurfaceTarget(
@@ -63,6 +69,19 @@ struct StatusBarCommand: GhostmuxCommand {
     let bgColor = parsed.value(for: "--bg")
     let windowScope = parsed.hasFlag("--window")
     let scope = windowScope ? "window" : nil
+    let bar = slot.wireValue
+
+    // A Ghostty without the second slot silently drops the unknown `bar` key and would
+    // apply the write to the primary bar instead. The GET response only carries `bar`
+    // on builds that have the slot, so probe before any mutating secondary call.
+    let mutatingSubcommands: Set<String> = ["set", "show", "hide", "toggle"]
+    if slot == .secondary && mutatingSubcommands.contains(subcommand) {
+      let probe = try context.client.getStatusBar(
+        terminalId: targetTerminal.id, scope: scope, bar: bar)
+      guard probe.barReportedByServer else {
+        throw GhosttyError.message(StatusBarSlot.unsupportedMessage)
+      }
+    }
 
     switch subcommand {
     case "set":
@@ -97,13 +116,15 @@ struct StatusBarCommand: GhostmuxCommand {
         visible: true,
         scope: scope,
         fg: fgColor,
-        bg: bgColor
+        bg: bgColor,
+        bar: bar
       )
     case "get":
       if parsed.positionals.count > 1 {
         throw GhosttyError.message("statusbar get does not take extra arguments")
       }
-      let info = try context.client.getStatusBar(terminalId: targetTerminal.id, scope: scope)
+      let info = try context.client.getStatusBar(
+        terminalId: targetTerminal.id, scope: scope, bar: bar)
       if parsed.json {
         writeJSON(info.toJsonDict())
       } else {
@@ -114,23 +135,27 @@ struct StatusBarCommand: GhostmuxCommand {
         print("fg:      \(info.fg ?? "default")")
         print("bg:      \(info.bg ?? "default")")
         print("scope:   \(info.scope)")
+        print("bar:     \(info.bar)")
       }
       return
     case "show":
       if parsed.positionals.count > 1 {
         throw GhosttyError.message("statusbar show does not take extra arguments")
       }
-      try context.client.setStatusBar(terminalId: targetTerminal.id, visible: true, scope: scope)
+      try context.client.setStatusBar(
+        terminalId: targetTerminal.id, visible: true, scope: scope, bar: bar)
     case "hide":
       if parsed.positionals.count > 1 {
         throw GhosttyError.message("statusbar hide does not take extra arguments")
       }
-      try context.client.setStatusBar(terminalId: targetTerminal.id, visible: false, scope: scope)
+      try context.client.setStatusBar(
+        terminalId: targetTerminal.id, visible: false, scope: scope, bar: bar)
     case "toggle":
       if parsed.positionals.count > 1 {
         throw GhosttyError.message("statusbar toggle does not take extra arguments")
       }
-      try context.client.setStatusBar(terminalId: targetTerminal.id, toggle: true, scope: scope)
+      try context.client.setStatusBar(
+        terminalId: targetTerminal.id, toggle: true, scope: scope, bar: bar)
     default:
       throw GhosttyError.message("unknown statusbar subcommand: \(subcommand)")
     }

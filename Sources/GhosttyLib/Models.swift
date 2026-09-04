@@ -108,6 +108,10 @@ public struct StatusBarInfo {
   public let fg: String?
   public let bg: String?
   public let scope: String
+  public let bar: String
+  /// Whether the server actually reported a `bar` key. Ghostty builds that predate the
+  /// second status bar omit it, which is the only signal that the slot does not exist.
+  public let barReportedByServer: Bool
 
   public init(
     left: String,
@@ -116,7 +120,8 @@ public struct StatusBarInfo {
     visible: Bool,
     fg: String?,
     bg: String?,
-    scope: String
+    scope: String,
+    bar: String? = nil
   ) {
     self.left = left
     self.center = center
@@ -125,6 +130,8 @@ public struct StatusBarInfo {
     self.fg = fg
     self.bg = bg
     self.scope = scope
+    self.bar = bar ?? StatusBarSlot.defaultSlot.rawValue
+    self.barReportedByServer = bar != nil
   }
 
   public func toJsonDict() -> [String: Any] {
@@ -134,6 +141,7 @@ public struct StatusBarInfo {
       "right": right,
       "visible": visible,
       "scope": scope,
+      "bar": bar,
     ]
     dict["fg"] = fg ?? NSNull()
     dict["bg"] = bg ?? NSNull()

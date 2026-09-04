@@ -94,6 +94,23 @@ final class CommandArgumentParserTests: XCTestCase {
     XCTAssertEqual(parsed.value(for: "--cwd"), "/tmp")
   }
 
+  func testStatusBarBarFlagKeepsItsValueAlongsideSubcommandPositionals() throws {
+    // `statusbar` parses with flagLikePositionals, so `--bar` must be declared as a
+    // value flag or "secondary" would be swallowed as a positional.
+    let parsed = try parse(
+      ["set", "--bar", "secondary", "L2|C2|R2"],
+      booleanFlags: ["--window"],
+      valueFlags: ["--fg", "--bg", "--bar"],
+      flagLikePositionals: true
+    )
+
+    XCTAssertEqual(parsed.value(for: "--bar"), "secondary")
+    XCTAssertEqual(parsed.positionals, ["set", "L2|C2|R2"])
+
+    assertMessage(
+      try parse(["--bar"], valueFlags: ["--bar"]), contains: "requires a value after --bar")
+  }
+
   func testFlagLikePositionalsAreOptIn() throws {
     assertMessage(try parse(["-dash-title"]), contains: "unexpected argument: -dash-title")
 

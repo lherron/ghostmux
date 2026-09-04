@@ -22,7 +22,11 @@ just install
 
 ```bash
 swift build -c release
-cp .build/release/ghostmux ~/.local/bin/
+# Stage beside the destination and rename: overwriting a live binary in place
+# tears the Mach-O under any concurrent exec and macOS SIGKILLs it (rc=137).
+cp .build/release/ghostmux ~/.local/bin/.ghostmux.new
+chmod 755 ~/.local/bin/.ghostmux.new
+mv -f ~/.local/bin/.ghostmux.new ~/.local/bin/ghostmux
 ```
 
 ## Usage

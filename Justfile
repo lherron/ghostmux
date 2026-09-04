@@ -59,11 +59,26 @@ test: build
 
 # Install to ~/.local/bin and materialize repo-local Git hooks
 install: build-release install-hooks
-    @mkdir -p ~/.local/bin
-    cp .build/release/ghostmux ~/.local/bin/ghostmux
-    cp .build/release/ghostchat ~/.local/bin/ghostchat
-    chmod +x ~/.local/bin/ghostmux ~/.local/bin/ghostchat
-    @echo "Installed ghostmux and ghostchat to ~/.local/bin/"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    dest="$HOME/.local/bin"
+    mkdir -p "$dest"
+    # Install by atomic replacement, never by writing over the live binary.
+    # A plain `cp` truncates and rewrites the destination inode in place, so any
+    # concurrent exec of it reads a torn Mach-O and macOS SIGKILLs the process
+    # (rc=137). `rm -f` first is not a fix either: the fresh file is still written
+    # incrementally, so racing execs still see a partial image (SIGKILL, rc=127,
+    # or a permanently wedged process). Staging beside the destination and
+    # renaming makes the swap a single rename(2): every exec sees either the whole
+    # old binary or the whole new one.
+    trap 'rm -f "$dest"/.ghostmux.install.$$ "$dest"/.ghostchat.install.$$' EXIT
+    for bin in ghostmux ghostchat; do
+        staged="$dest/.$bin.install.$$"
+        cp ".build/release/$bin" "$staged"
+        chmod 755 "$staged"
+        mv -f "$staged" "$dest/$bin"
+    done
+    echo "Installed ghostmux and ghostchat to $dest/"
 
 # Build and install ScriptableGhostty (convenience)
 install-ghostty:

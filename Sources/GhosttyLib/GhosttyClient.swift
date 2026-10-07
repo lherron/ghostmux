@@ -487,6 +487,18 @@ public final class GhosttyClient {
     return terminal
   }
 
+  /// Like `getTerminal`, but a 404 (unknown id) returns nil instead of throwing.
+  public func findTerminal(terminalId: String) throws -> Terminal? {
+    let response = try request(version: "v2", method: "GET", path: "/terminals/\(terminalId)")
+    if response.status == 404 {
+      return nil
+    }
+    guard response.status == 200 else {
+      throw GhosttyError.apiError(response.status, response.bodyError)
+    }
+    return response.body.flatMap(parseTerminal)
+  }
+
   public func executeAction(terminalId: String, action: String) throws {
     let body: [String: Any] = ["action": action]
     let response = try request(

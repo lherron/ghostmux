@@ -66,10 +66,9 @@ struct MetadataCommand: GhostmuxCommand {
 
     let targetTerminal: Terminal?
     if windowId == nil {
-      let terminals = try context.client.listTerminals()
       let policy: SurfaceResolutionPolicy = .regularTarget
       targetTerminal = try resolveSurfaceTarget(
-        parsed.target, terminals: terminals, policy: policy)
+        parsed.target, client: context.client, policy: policy)
     } else {
       targetTerminal = nil
     }

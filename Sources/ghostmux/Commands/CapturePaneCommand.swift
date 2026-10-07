@@ -55,10 +55,9 @@ struct CapturePaneCommand: GhostmuxCommand {
       endSpec = try parseLineSpec(rawEnd)
     }
 
-    let terminals = try context.client.listTerminals()
     let policy: SurfaceResolutionPolicy = .regularTarget
     let targetTerminal = try resolveSurfaceTarget(
-      parsed.target, terminals: terminals, policy: policy)
+      parsed.target, client: context.client, policy: policy)
 
     if parsed.hasFlag("--selection") {
       if startSpec != nil || endSpec != nil {

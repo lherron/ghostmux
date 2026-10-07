@@ -49,10 +49,9 @@ struct SetBackgroundCommand: GhostmuxCommand {
       }
     }
 
-    let terminals = try context.client.listTerminals()
     let policy: SurfaceResolutionPolicy = .regularTarget
     let targetTerminal = try resolveSurfaceTarget(
-      parsed.target, terminals: terminals, policy: policy)
+      parsed.target, client: context.client, policy: policy)
 
     if reset {
       try context.client.sendOutput(terminalId: targetTerminal.id, data: oscResetBackground())

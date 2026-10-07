@@ -32,10 +32,9 @@ struct SetTitleCommand: GhostmuxCommand {
       throw GhosttyError.message("set-title requires a title")
     }
 
-    let terminals = try context.client.listTerminals()
     let policy: SurfaceResolutionPolicy = .regularTarget
     let targetTerminal = try resolveSurfaceTarget(
-      parsed.target, terminals: terminals, policy: policy)
+      parsed.target, client: context.client, policy: policy)
     let titleResult = TerminalTitlePolicy(client: context.client).setTitle(
       terminalId: targetTerminal.id,
       title: title

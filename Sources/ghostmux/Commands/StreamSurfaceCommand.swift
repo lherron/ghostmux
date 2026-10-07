@@ -29,9 +29,8 @@ struct StreamSurfaceCommand: GhostmuxCommand {
       return
     }
 
-    let terminals = try context.client.listTerminals()
     let policy: SurfaceResolutionPolicy = .regularTarget
-    let terminal = try resolveSurfaceTarget(parsed.target, terminals: terminals, policy: policy)
+    let terminal = try resolveSurfaceTarget(parsed.target, client: context.client, policy: policy)
 
     // Stream output
     try streamOutput(terminalId: terminal.id, raw: parsed.hasFlag("--raw"), client: context.client)

@@ -60,10 +60,9 @@ struct StatusBarCommand: GhostmuxCommand {
 
     let slot = try parsed.value(for: "--bar").map(StatusBarSlot.require) ?? .defaultSlot
 
-    let terminals = try context.client.listTerminals()
     let policy: SurfaceResolutionPolicy = .regularTarget
     let targetTerminal = try resolveSurfaceTarget(
-      parsed.target, terminals: terminals, policy: policy)
+      parsed.target, client: context.client, policy: policy)
 
     let fgColor = parsed.value(for: "--fg")
     let bgColor = parsed.value(for: "--bg")

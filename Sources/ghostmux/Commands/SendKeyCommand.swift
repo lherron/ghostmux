@@ -42,10 +42,9 @@ struct SendKeyCommand: GhostmuxCommand {
       throw GhosttyError.message("send-key requires a key to send")
     }
 
-    let terminals = try context.client.listTerminals()
     let policy: SurfaceResolutionPolicy = .regularTarget
     let targetTerminal = try resolveSurfaceTarget(
-      parsed.target, terminals: terminals, policy: policy)
+      parsed.target, client: context.client, policy: policy)
 
     let literal = parsed.hasFlag("-l") || parsed.hasFlag("--literal")
     let inputPolicy = InputPlanPolicy(

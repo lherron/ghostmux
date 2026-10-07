@@ -57,17 +57,8 @@ struct ScreenshotCommand: GhostmuxCommand {
       throw GhosttyError.message("screenshot --json is not compatible with -o -")
     }
 
-    let terminals = try context.client.listTerminals()
     let policy: SurfaceResolutionPolicy = .screenshotTarget
-    let targetTerminal: Terminal
-    do {
-      targetTerminal = try SurfaceResolver(terminals: terminals).resolve(
-        target.map(SurfaceSelector.argument) ?? .none,
-        policy: policy
-      )
-    } catch let error as SurfaceResolutionError {
-      throw GhosttyError.message(SurfaceResolutionError.format(error))
-    }
+    let targetTerminal = try resolveSurfaceTarget(target, client: context.client, policy: policy)
     let screenshot = try context.client.getScreenshot(terminalId: targetTerminal.id)
 
     let path: String?

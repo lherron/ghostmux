@@ -31,10 +31,9 @@ struct AttachHostSessionCommand: GhostmuxCommand {
       throw GhosttyError.message("attach-host-session requires a single animata-host:// target URI")
     }
 
-    let terminals = try context.client.listTerminals()
     let policy: SurfaceResolutionPolicy = .regularTarget
     let targetTerminal = try resolveSurfaceTarget(
-      parsed.target, terminals: terminals, policy: policy)
+      parsed.target, client: context.client, policy: policy)
 
     let targetUri = parsed.positionals[0]
     let (hostRef, sessionName) = try parseAnimataHostURI(targetUri)

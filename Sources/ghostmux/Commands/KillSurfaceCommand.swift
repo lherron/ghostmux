@@ -34,10 +34,9 @@ struct KillSurfaceCommand: GhostmuxCommand {
       throw GhosttyError.message("kill-surface does not allow both --confirm and --force")
     }
 
-    let terminals = try context.client.listTerminals()
     let policy: SurfaceResolutionPolicy = .regularTarget
     let targetTerminal = try resolveSurfaceTarget(
-      parsed.target, terminals: terminals, policy: policy)
+      parsed.target, client: context.client, policy: policy)
 
     try context.client.deleteTerminal(terminalId: targetTerminal.id, confirm: confirm && !force)
     if parsed.json {

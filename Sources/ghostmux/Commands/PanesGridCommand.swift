@@ -60,9 +60,8 @@ struct PanesGridCommand: GhostmuxCommand {
       throw GhosttyError.message("grid too large: maximum 10x10")
     }
 
-    let terminals = try context.client.listTerminals()
     let policy: SurfaceResolutionPolicy = .focusedTarget
-    let startingId = try resolveSurfaceTarget(parsed.target, terminals: terminals, policy: policy)
+    let startingId = try resolveSurfaceTarget(parsed.target, client: context.client, policy: policy)
       .id
 
     // Build the grid

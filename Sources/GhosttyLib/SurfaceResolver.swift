@@ -212,3 +212,70 @@ public struct SurfaceResolver {
     }
   }
 }
+
+extension SurfaceResolver {
+  /// Resolves a target against a live terminal source. A full-UUID selector the policy would
+  /// match by exact UUID is fetched directly, because listing every terminal is expensive on
+  /// the server; everything else (and a direct miss) resolves against the full listing so
+  /// matching rules and error messages stay identical.
+  public static func resolve(
+    target: String?,
+    policy: SurfaceResolutionPolicy,
+    environment: @escaping EnvironmentLookup = resolveEnv,
+    fetchTerminal: (String) throws -> Terminal?,
+    listTerminals: () throws -> [Terminal]
+  ) throws -> Terminal {
+    if let id = directLookupId(target: target, policy: policy, environment: environment),
+      let terminal = try fetchTerminal(id),
+      terminal.id.lowercased() == id.lowercased()
+    {
+      return terminal
+    }
+    return try SurfaceResolver(terminals: listTerminals(), environment: environment).resolve(
+      target.map(SurfaceSelector.argument) ?? .none,
+      policy: policy
+    )
+  }
+
+  /// The selector to fetch directly, when it is a full UUID that the policy's first
+  /// matching mode would treat as an exact UUID.
+  private static func directLookupId(
+    target: String?,
+    policy: SurfaceResolutionPolicy,
+    environment: EnvironmentLookup
+  ) -> String? {
+    guard let exactIndex = policy.allowedModes.firstIndex(of: .exactUUID),
+      !policy.allowedModes[..<exactIndex].contains(.title)
+    else {
+      return nil
+    }
+
+    guard
+      let selector = (target ?? fallbackSelector(policy: policy, environment: environment))?
+        .trimmingCharacters(in: .whitespacesAndNewlines),
+      UUID(uuidString: selector) != nil
+    else {
+      return nil
+    }
+    return selector
+  }
+
+  /// Mirrors `resolveFallback`: the first set environment variable wins, unless a focused
+  /// fallback comes first (focus needs the full listing).
+  private static func fallbackSelector(
+    policy: SurfaceResolutionPolicy,
+    environment: EnvironmentLookup
+  ) -> String? {
+    for fallback in policy.fallbackModes {
+      switch fallback {
+      case .environment(let name):
+        if let value = environment(name), !value.isEmpty {
+          return value
+        }
+      case .focused:
+        return nil
+      }
+    }
+    return nil
+  }
+}

@@ -32,10 +32,9 @@ struct GetPaneSizeCommand: GhostmuxCommand {
       return
     }
 
-    let terminals = try context.client.listTerminals()
     let policy: SurfaceResolutionPolicy = .regularTarget
     let targetTerminal = try resolveSurfaceTarget(
-      parsed.target, terminals: terminals, policy: policy)
+      parsed.target, client: context.client, policy: policy)
 
     // Get terminal info (already has size from list, but fetch fresh for accuracy)
     let terminal = try context.client.getTerminal(terminalId: targetTerminal.id)

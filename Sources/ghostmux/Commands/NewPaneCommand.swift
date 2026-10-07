@@ -79,9 +79,9 @@ struct NewPaneCommand: GhostmuxCommand {
         "invalid direction '\(direction)': must be left, right, up, or down")
     }
 
-    let terminals = try context.client.listTerminals()
     let policy: SurfaceResolutionPolicy = .focusedTarget
-    let parentId = try resolveSurfaceTarget(parsed.target, terminals: terminals, policy: policy).id
+    let parentId = try resolveSurfaceTarget(parsed.target, client: context.client, policy: policy)
+      .id
 
     // Create the split
     let location = "split:\(direction)"

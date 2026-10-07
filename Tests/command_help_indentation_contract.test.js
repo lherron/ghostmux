@@ -53,7 +53,10 @@ let package = Package(
   public let rows: Int?
 }
 
-public struct GhosttyClient {}
+public struct GhosttyClient {
+  public func findTerminal(terminalId: String) throws -> Terminal? { nil }
+  public func listTerminals() throws -> [Terminal] { [] }
+}
 
 public enum GhosttyError: Error {
   case message(String)
@@ -75,8 +78,12 @@ public enum SurfaceResolutionError: Error {
 }
 
 public struct SurfaceResolver {
-  public init(terminals: [Terminal]) {}
-  public func resolve(_ selector: SurfaceSelector, policy: SurfaceResolutionPolicy) throws -> Terminal {
+  public static func resolve(
+    target: String?,
+    policy: SurfaceResolutionPolicy,
+    fetchTerminal: (String) throws -> Terminal?,
+    listTerminals: () throws -> [Terminal]
+  ) throws -> Terminal {
     throw SurfaceResolutionError.unresolved
   }
 }

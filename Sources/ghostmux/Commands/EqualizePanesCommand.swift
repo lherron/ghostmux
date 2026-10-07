@@ -31,10 +31,9 @@ struct EqualizePanesCommand: GhostmuxCommand {
       return
     }
 
-    let terminals = try context.client.listTerminals()
     let policy: SurfaceResolutionPolicy = .regularTarget
     let targetTerminal = try resolveSurfaceTarget(
-      parsed.target, terminals: terminals, policy: policy)
+      parsed.target, client: context.client, policy: policy)
 
     // Execute equalize action
     try context.client.executeAction(terminalId: targetTerminal.id, action: "equalize_splits")

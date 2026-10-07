@@ -202,7 +202,7 @@ describe("surface selector resolver contract", () => {
 
     expect(screenshot).not.toContain("resolveScreenshotTarget");
     expect(screenshot).toContain("SurfaceResolutionPolicy");
-    expect(screenshot).toContain("SurfaceResolver");
+    expect(screenshot).toContain("resolveSurfaceTarget(");
 
     expect(ghostchat).not.toContain("Try to resolve target by friendly name first");
     expect(ghostchat).not.toContain("resolveTarget(target, terminals: terminals)");

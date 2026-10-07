@@ -41,17 +41,43 @@ func terminalSummary(_ terminal: Terminal, includeFocusStatus: Bool = true) -> S
 
 func resolveSurfaceTarget(
   _ target: String?,
-  terminals: [Terminal],
+  client: GhosttyClient,
   policy: SurfaceResolutionPolicy
 ) throws -> Terminal {
+  try resolveSurfaceTarget(
+    target,
+    policy: policy,
+    fetchTerminal: { try client.findTerminal(terminalId: $0) },
+    listTerminals: client.listTerminals
+  )
+}
+
+private func resolveSurfaceTarget(
+  _ target: String?,
+  policy: SurfaceResolutionPolicy,
+  fetchTerminal: (String) throws -> Terminal?,
+  listTerminals: () throws -> [Terminal]
+) throws -> Terminal {
   do {
-    return try SurfaceResolver(terminals: terminals).resolve(
-      target.map(SurfaceSelector.argument) ?? .none,
-      policy: policy
+    return try SurfaceResolver.resolve(
+      target: target,
+      policy: policy,
+      fetchTerminal: fetchTerminal,
+      listTerminals: listTerminals
     )
   } catch let error as SurfaceResolutionError {
     throw GhosttyError.message(SurfaceResolutionError.format(error))
   }
+}
+
+/// For commands that already need the full terminal listing.
+func resolveSurfaceTarget(
+  _ target: String?,
+  terminals: [Terminal],
+  policy: SurfaceResolutionPolicy
+) throws -> Terminal {
+  try resolveSurfaceTarget(
+    target, policy: policy, fetchTerminal: { _ in nil }, listTerminals: { terminals })
 }
 
 func parseCommandArguments(

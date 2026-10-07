@@ -61,10 +61,9 @@ struct ResizePaneCommand: GhostmuxCommand {
         "invalid direction '\(direction)': must be left, right, up, or down")
     }
 
-    let terminals = try context.client.listTerminals()
     let policy: SurfaceResolutionPolicy = .regularTarget
     let targetTerminal = try resolveSurfaceTarget(
-      parsed.target, terminals: terminals, policy: policy)
+      parsed.target, client: context.client, policy: policy)
 
     // Execute resize action
     let action = "resize_split:\(direction),\(amount)"

@@ -47,6 +47,16 @@ case "$1" in
     exit 0
     ;;
   screenshot)
+    case "\${FAKE_SCREENSHOT:-png}" in
+      occluded)
+        echo "error: Terminal is not on screen (hidden tab or occluded window); select it first or use /screen for text contents" >&2
+        exit 1
+        ;;
+      error)
+        echo "error: screenshot failed" >&2
+        exit 1
+        ;;
+    esac
     out=""
     while [[ $# -gt 0 ]]; do
       case "$1" in
@@ -83,65 +93,85 @@ function listenOnUnixSocket(path) {
   });
 }
 
+async function runSmoke(fakeScreenshot) {
+  const dir = makeTempDir();
+  const fakeBin = writeFakeGhostmux(dir);
+  const socketPath = join(dir, "api.sock");
+  const server = await listenOnUnixSocket(socketPath);
+
+  try {
+    const result = spawnSync("bash", ["Tests/ghostmux_smoke.sh"], {
+      cwd: root,
+      env: {
+        ...process.env,
+        GHOSTMUX_BIN: fakeBin,
+        GHOSTTY_API_SOCKET: socketPath,
+        GHOSTMUX_SMOKE_ALLOW_SKIP: "0",
+        FAKE_SCREENSHOT: fakeScreenshot,
+      },
+      encoding: "utf8",
+      timeout: 30_000,
+    });
+    return { dir, fakeBin, socketPath, result };
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
+function expectPassEvidence({ dir, fakeBin, socketPath, result }, screenshotValidation) {
+  expect(
+    result.status,
+    `smoke script should reach its pass path with the bounded fake binary.\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`,
+  ).toBe(0);
+  expect(result.stdout).toContain("GHOSTMUX_SMOKE_RESULT=passed");
+
+  const evidenceLine = result.stdout
+    .split(/\r?\n/)
+    .find((line) => line.startsWith("GHOSTMUX_SMOKE_EVIDENCE="));
+  expect(
+    evidenceLine,
+    `pass output should include GHOSTMUX_SMOKE_EVIDENCE JSON.\nSTDOUT:\n${result.stdout}`,
+  ).toBeDefined();
+
+  const evidence = JSON.parse(evidenceLine.replace("GHOSTMUX_SMOKE_EVIDENCE=", ""));
+  expect(evidence).toMatchObject({
+    result: "passed",
+    binary_path: fakeBin,
+    socket_path: socketPath,
+    created_short_id: "smoke-proof",
+    screenshot_validation: screenshotValidation,
+    cleanup_result: "killed",
+  });
+  expect(evidence.exercised_commands).toEqual([
+    "new",
+    "send-keys",
+    "capture-pane",
+    "screenshot",
+    "kill-surface",
+  ]);
+
+  const commandLog = readFileSync(join(dir, "commands.log"), "utf8")
+    .trim()
+    .split(/\r?\n/);
+  expect(commandLog).toEqual(evidence.exercised_commands);
+}
+
 describe("ghostmux smoke evidence contract", () => {
   test("successful smoke emits one machine-readable evidence JSON line with proof fields", async () => {
     // T-05810 red bar: the runtime smoke may still print its existing human lines,
     // but a successful pass must also expose structured proof for automation.
-    const dir = makeTempDir();
-    const fakeBin = writeFakeGhostmux(dir);
-    const socketPath = join(dir, "api.sock");
-    const server = await listenOnUnixSocket(socketPath);
+    expectPassEvidence(await runSmoke("png"), "png");
+  });
 
-    try {
-      const result = spawnSync("bash", ["Tests/ghostmux_smoke.sh"], {
-        cwd: root,
-        env: {
-          ...process.env,
-          GHOSTMUX_BIN: fakeBin,
-          GHOSTTY_API_SOCKET: socketPath,
-          GHOSTMUX_SMOKE_ALLOW_SKIP: "0",
-        },
-        encoding: "utf8",
-        timeout: 30_000,
-      });
+  test("an occluded-terminal screenshot refusal passes as occluded", async () => {
+    // T-12020: a background smoke terminal covered by another window gets
+    // 409 terminal_not_visible; the smoke must not steal focus to avoid it.
+    expectPassEvidence(await runSmoke("occluded"), "occluded");
+  });
 
-      expect(
-        result.status,
-        `smoke script should reach its pass path with the bounded fake binary.\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`,
-      ).toBe(0);
-      expect(result.stdout).toContain("GHOSTMUX_SMOKE_RESULT=passed");
-
-      const evidenceLine = result.stdout
-        .split(/\r?\n/)
-        .find((line) => line.startsWith("GHOSTMUX_SMOKE_EVIDENCE="));
-      expect(
-        evidenceLine,
-        `pass output should include GHOSTMUX_SMOKE_EVIDENCE JSON.\nSTDOUT:\n${result.stdout}`,
-      ).toBeDefined();
-
-      const evidence = JSON.parse(evidenceLine.replace("GHOSTMUX_SMOKE_EVIDENCE=", ""));
-      expect(evidence).toMatchObject({
-        result: "passed",
-        binary_path: fakeBin,
-        socket_path: socketPath,
-        created_short_id: "smoke-proof",
-        screenshot_validation: "png",
-        cleanup_result: "killed",
-      });
-      expect(evidence.exercised_commands).toEqual([
-        "new",
-        "send-keys",
-        "capture-pane",
-        "screenshot",
-        "kill-surface",
-      ]);
-
-      const commandLog = readFileSync(join(dir, "commands.log"), "utf8")
-        .trim()
-        .split(/\r?\n/);
-      expect(commandLog).toEqual(evidence.exercised_commands);
-    } finally {
-      await new Promise((resolve) => server.close(resolve));
-    }
+  test("any other screenshot failure fails the smoke", async () => {
+    const { result } = await runSmoke("error");
+    expect(result.status).not.toBe(0);
+    expect(result.stdout).not.toContain("GHOSTMUX_SMOKE_RESULT=passed");
   });
 });

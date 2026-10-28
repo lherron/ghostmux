@@ -73,18 +73,31 @@ sleep 1
 "$BIN" send-keys -t "$target" C-g >/dev/null
 "$BIN" capture-pane -t "$target" >/dev/null
 
+# The smoke terminal opens in the background so it never takes Lance's keyboard
+# focus. When another window covers it, the server refuses the screenshot with
+# 409 terminal_not_visible (scriptable-ghostty T-10764); that refusal is the
+# correct answer on an occluded desktop, so it passes as "occluded".
 shot="$(mktemp -t ghostmux-screenshot-smoke).png"
-"$BIN" screenshot -t "$target" -o "$shot" >/dev/null
-file "$shot" | grep -q "PNG image data"
+if shot_err="$("$BIN" screenshot -t "$target" -o "$shot" 2>&1 >/dev/null)"; then
+  file "$shot" | grep -q "PNG image data"
+  screenshot_validation="png"
+elif [[ "$shot_err" == *"not on screen"* ]]; then
+  echo "screenshot: terminal occluded (409 terminal_not_visible), counted as pass"
+  screenshot_validation="occluded"
+else
+  echo "FAIL: screenshot: $shot_err"
+  exit 1
+fi
 rm -f "$shot"
 
 cleanup
 trap - EXIT
 
 echo "GHOSTMUX_SMOKE_RESULT=passed"
-printf 'GHOSTMUX_SMOKE_EVIDENCE={"result":"passed","binary_path":"%s","socket_path":"%s","created_short_id":"%s","exercised_commands":["new","send-keys","capture-pane","screenshot","kill-surface"],"screenshot_validation":"png","cleanup_result":"%s"}\n' \
+printf 'GHOSTMUX_SMOKE_EVIDENCE={"result":"passed","binary_path":"%s","socket_path":"%s","created_short_id":"%s","exercised_commands":["new","send-keys","capture-pane","screenshot","kill-surface"],"screenshot_validation":"%s","cleanup_result":"%s"}\n' \
   "$(json_escape "$BIN")" \
   "$(json_escape "$SOCK")" \
   "$(json_escape "$target")" \
+  "$screenshot_validation" \
   "$(json_escape "$cleanup_result")"
 echo "OK"
